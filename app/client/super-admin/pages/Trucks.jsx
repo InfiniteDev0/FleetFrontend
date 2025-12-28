@@ -126,6 +126,16 @@ const Trucks = () => {
             </SelectContent>
           </Select>
 
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={createLoading}
+          >
+            <IconRefresh className="mr-1 size-4" />
+            {createLoading ? "Refreshing..." : "Refresh"}
+          </Button>
+
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button
@@ -227,13 +237,19 @@ const Trucks = () => {
       </div>
 
       {/* Trucks list */}
-      <div className="">
+      <div>
         {loading ? (
-          <div className="!p-6 text-center text-muted-foreground">
+          <div className="text-center text-muted-foreground">
             Loading trucks...
           </div>
         ) : (
-          <TrucksDataTable data={filteredTrucks} fetchTrucks={fetchTrucks} />
+          <TrucksDataTable
+            data={filteredTrucks}
+            fetchTrucks={fetchTrucks}
+            searchable
+            paginated
+            sortable
+          />
         )}
       </div>
     </div>

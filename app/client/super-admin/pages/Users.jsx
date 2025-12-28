@@ -23,6 +23,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useSuperAdmin } from "../context/SuperAdminContext";
 import { toast } from "sonner";
+import { UsersDataTable } from "@/components/user-datatable";
 
 const Users = () => {
   const {
@@ -32,10 +33,11 @@ const Users = () => {
     allowedRoles,
     canCreate,
     filteredUsers,
-    users,
+    // users,
     loading,
     currentUser,
     createUser,
+    fetchUsers,
   } = useSuperAdmin();
 
   const [status, setStatus] = useState("all");
@@ -53,30 +55,33 @@ const Users = () => {
     }
   };
 
-  const displayedUsers = filteredUsers.filter((u) => {
-    const matchesSearch =
-      u.name?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase()) ||
-      u.role?.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus =
-      status === "all" ? true : status === "active" ? u.isActive : !u.isActive;
-    return matchesSearch && matchesStatus;
-  });
+  const displayedUsers = React.useMemo(() => {
+    return filteredUsers.filter((u) => {
+      const matchesSearch =
+        u.name?.toLowerCase().includes(search.toLowerCase()) ||
+        u.email?.toLowerCase().includes(search.toLowerCase()) ||
+        u.role?.toLowerCase().includes(search.toLowerCase());
+      let matchesStatus = true;
+      if (status === "active") matchesStatus = u.isActive;
+      else if (status === "inactive") matchesStatus = !u.isActive;
+      return matchesSearch && matchesStatus;
+    });
+  }, [filteredUsers, search, status]);
 
   return (
-    <div className="!py-6 flex flex-col gap-5 !px-4">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 !mb-6">
+    <div className="py-6! flex flex-col gap-5 px-4!">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6!">
         <div>
           <h2 className="text-xl font-semibold">Users Management Page</h2>
           <p className="text-sm text-muted-foreground">
             Manage and monitor all users.
           </p>
           {currentUser ? (
-            <p className="text-xs text-muted-foreground !mt-1">
+            <p className="text-xs text-muted-foreground mt-1!">
               Signed in as {currentUser.name} ({currentUser.role})
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground !mt-1">Not signed in</p>
+            <p className="text-xs text-muted-foreground mt-1!">Not signed in</p>
           )}
         </div>
 
@@ -85,12 +90,12 @@ const Users = () => {
             placeholder="Search by name, email, or role..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-[250px]"
+            className="w-62.5 p-2!"
           />
 
           <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="w-[160px]">
-              <IconFilter className="!mr-2 size-4 text-muted-foreground" />
+            <SelectTrigger className="w-40 p-2!">
+              <IconFilter className="mr-2! size-4 text-muted-foreground" />
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
@@ -104,13 +109,9 @@ const Users = () => {
             <SheetTrigger asChild>
               <Button
                 variant="default"
-                className="flex items-center gap-2"
-                disabled={!canCreate}
-                title={
-                  !canCreate
-                    ? "You do not have permission to add users"
-                    : "Add User"
-                }
+                className="flex items-center gap-2 p-2!"
+                disabled={false}
+                title={"Add User"}
               >
                 <IconPlus className="size-4" />
                 Add User
@@ -125,8 +126,8 @@ const Users = () => {
                 </SheetDescription>
               </SheetHeader>
 
-              <form onSubmit={handleCreateUser} className="grid gap-6 !mt-6">
-                <div className="grid gap-2">
+              <form onSubmit={handleCreateUser} className="grid gap-6 mt-6!">
+                <div className="grid gap-2 p-0!">
                   <Label htmlFor="user-name">Name</Label>
                   <Input
                     id="user-name"
@@ -139,7 +140,7 @@ const Users = () => {
                   />
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-2 p-0!">
                   <Label htmlFor="user-email">Email</Label>
                   <Input
                     id="user-email"
@@ -153,7 +154,7 @@ const Users = () => {
                   />
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-2 p-0!">
                   <Label htmlFor="user-role">Role</Label>
                   <Select
                     value={form.role}
@@ -174,7 +175,7 @@ const Users = () => {
                   </Select>
                 </div>
 
-                <div className="grid gap-2">
+                <div className="grid gap-2 p-0!">
                   <Label htmlFor="user-active">Status</Label>
                   <Select
                     value={form.isActive}
@@ -196,7 +197,7 @@ const Users = () => {
                   <div className="text-red-600 text-sm">{usersError}</div>
                 )}
 
-                <SheetFooter className="!mt-2">
+                <SheetFooter className="mt-2!">
                   <Button type="submit" disabled={!canCreate}>
                     Create User
                   </Button>
@@ -212,41 +213,13 @@ const Users = () => {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
+      <div className="flex flex-col !px-2 gap-4">
         {loading ? (
-          <div className="text-muted-foreground">Loading users...</div>
-        ) : displayedUsers.length === 0 ? (
-          <div className="min-h-[30vh] flex items-center justify-center text-muted-foreground">
-            No users found. Create a user to get started.
+          <div className="text-center text-muted-foreground">
+            Loading Users...
           </div>
         ) : (
-          <div className="rounded-xl border bg-card">
-            <div className="p-4 border-b text-sm text-muted-foreground">
-              Showing {displayedUsers.length} of {users.length}
-            </div>
-            <div className="p-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {displayedUsers.map((u) => (
-                  <div
-                    key={u.id || u._id}
-                    className="rounded-lg border p-4 flex flex-col gap-1"
-                  >
-                    <div className="font-medium">{u.name}</div>
-                    <div className="text-sm text-muted-foreground">
-                      {u.email}
-                    </div>
-                    <div className="text-xs">
-                      <span className="font-medium">Role:</span> {u.role}
-                    </div>
-                    <div className="text-xs">
-                      <span className="font-medium">Status:</span>{" "}
-                      {u.isActive ? "Active" : "Inactive"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <UsersDataTable data={displayedUsers} fetchUsers={fetchUsers} />
         )}
       </div>
     </div>

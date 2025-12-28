@@ -1,5 +1,4 @@
-"use client";
-
+import React from "react";
 import {
   Table,
   TableHeader,
@@ -8,190 +7,102 @@ import {
   TableBody,
   TableCell,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuCheckboxItem,
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import {
-  IconLayoutColumns,
-  IconChevronDown,
-  IconPlus,
+  IconDotsVertical,
+  IconCircleCheckFilled,
+  IconLoader,
+  IconRefresh,
+  IconGripVertical,
   IconChevronsLeft,
   IconChevronLeft,
   IconChevronRight,
   IconChevronsRight,
-  IconCircleCheckFilled,
-  IconDotsVertical,
-  IconGripVertical,
-  IconLoader,
-  IconRefresh,
 } from "@tabler/icons-react";
-import React, { useMemo, useState } from "react";
-// (Remove these stray lines, they are not valid at the top level)
 import {
   useReactTable,
   getCoreRowModel,
   getPaginationRowModel,
   flexRender,
-  getFacetedRowModel,
-  getFacetedUniqueValues,
   getFilteredRowModel,
   getSortedRowModel,
   type ColumnDef,
-  type ColumnFiltersState,
   type Row,
   type SortingState,
-  type VisibilityState,
+  type ColumnFiltersState,
 } from "@tanstack/react-table";
-import { z } from "zod";
-import {
-  closestCenter,
-  DndContext,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-  type UniqueIdentifier,
-} from "@dnd-kit/core";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   arrayMove,
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import {
+  DndContext,
+  closestCenter,
+  useSensor,
+  useSensors,
+  MouseSensor,
+  TouchSensor,
+  KeyboardSensor,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Badge } from "@/components/ui/badge";
-import { useTripsForDate } from "@/app/hooks/useFleetData";
-export const truckSchema = z.object({
-  id: z.string().or(z.number()), // depending on your DB (_id as string or numeric id)
-  plateNumber: z.string(),
-  model: z.string(),
-  capacity: z.number(), // in tons
-  status: z.enum(["available", "in-use", "maintenance", "ended"]),
-  assignedDrivers: z.array(z.string()), // driver IDs
-  createdBy: z.string(),
-  updatedBy: z.string().optional(),
+import { toast } from "sonner";
 
-  // Optional metadata
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional(),
-});
-
-// Create a separate component for the drag handle
-function DragHandle({ id }: { id: string | number }) {
-  const { attributes, listeners } = useSortable({
-    id: String(id),
-  });
-  return (
-    <Button
-      {...attributes}
-      {...listeners}
-      variant="ghost"
-      size="icon"
-      className="text-muted-foreground size-7 hover:bg-transparent"
-    >
-      <IconGripVertical className="text-muted-foreground size-3" />
-      <span className="sr-only">Drag to reorder</span>
-    </Button>
-  );
-}
-
-const columns: ColumnDef<z.infer<typeof truckSchema>>[] = [
+const userColumns: ColumnDef<any>[] = [
   {
     id: "drag",
     header: () => null,
     cell: ({ row }) => <DragHandle id={row.original.id} />,
   },
   {
-    accessorKey: "plateNumber",
-    header: "Truck Number",
+    accessorKey: "name",
+    header: "Name",
+    cell: ({ row }) => <span className="font-medium">{row.original.name}</span>,
+  },
+  {
+    accessorKey: "email",
+    header: "Email",
+    cell: ({ row }) => <span>{row.original.email}</span>,
+  },
+  {
+    accessorKey: "role",
+    header: "Role",
     cell: ({ row }) => (
-      <span className="font-medium">{row.original.plateNumber}</span>
+      <span className="capitalize">{row.original.role.replace("_", " ")}</span>
     ),
-    enableHiding: false,
   },
   {
-    accessorKey: "model",
-    header: "Model",
-    cell: ({ row }) => <span>{row.original.model}</span>,
-  },
-  {
-    accessorKey: "capacity",
-    header: "Capacity (tons)",
-    cell: ({ row }) => <span>{row.original.capacity}</span>,
-  },
-  {
-    accessorKey: "assignedDrivers",
-    header: "Drivers",
-    cell: ({ row, table }) => {
-      const driverIds = row.original.assignedDrivers;
-      const driversList = (table.options.meta as any)?.drivers || [];
-      const names = driverIds
-        .map((id: string) => {
-          const found = driversList.find((d: any) => {
-            const driverIdStr = String(d.id || d._id);
-            const idStr = String(id);
-            return driverIdStr === idStr;
-          });
-          return found ? found.name : null;
-        })
-        .filter(Boolean);
-      return names.length > 0 ? (
-        <span>{names.join(", ")}</span>
-      ) : (
-        <span className="text-muted-foreground">No driver assigned</span>
-      );
-    },
-  },
-  {
-    accessorKey: "status",
+    accessorKey: "isActive",
     header: "Status",
     cell: ({ row }) => {
-      const status = row.original.status;
+      const isActive = row.original.isActive;
       let icon = null;
       let colorClass = "";
-
-      if (status === "available" || status === "in-use") {
+      if (isActive) {
         icon = (
           <IconCircleCheckFilled className="size-4 fill-green-500 dark:fill-green-400" />
         );
         colorClass = "text-green-600 dark:text-green-400";
-      } else if (status === "ended") {
-        icon = (
-          <IconCircleCheckFilled className="size-4 fill-red-500 dark:fill-red-400" />
-        );
-        colorClass = "text-red-600 dark:text-red-400";
       } else {
-        icon = <IconLoader className="size-4 text-yellow-500" />;
-        colorClass = "text-yellow-600 dark:text-yellow-400";
+        icon = <IconLoader className="size-4 text-red-500" />;
+        colorClass = "text-red-600 dark:text-red-400";
       }
-
       return (
         <Badge
           variant="outline"
           className={`px-1.5! flex items-center gap-1! ${colorClass}`}
         >
           {icon}
-          {status === "in-use"
-            ? "Active"
-            : status === "ended"
-            ? "Ended"
-            : status}
+          {isActive ? "Active" : "Inactive"}
         </Badge>
       );
     },
@@ -222,24 +133,35 @@ const columns: ColumnDef<z.infer<typeof truckSchema>>[] = [
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem
-            onClick={() => {
-              /* Edit functionality */
-            }}
-          >
-            Edit
-          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => {}}>Edit</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     ),
   },
 ];
 
-function DraggableRow({ row }: { row: Row<z.infer<typeof truckSchema>> }) {
+function DragHandle({ id }: { id: string | number }) {
+  const { attributes, listeners } = useSortable({
+    id: String(id),
+  });
+  return (
+    <Button
+      {...attributes}
+      {...listeners}
+      variant="ghost"
+      size="icon"
+      className="text-muted-foreground size-7 hover:bg-transparent"
+    >
+      <IconGripVertical className="text-muted-foreground size-3" />
+      <span className="sr-only">Drag to reorder</span>
+    </Button>
+  );
+}
+
+function DraggableRow({ row }: { row: Row<any> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
   });
-
   return (
     <TableRow
       data-state={row.getIsSelected() && "selected"}
@@ -260,25 +182,28 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof truckSchema>> }) {
   );
 }
 
-import { toast } from "sonner";
-
-interface TrucksDataTableProps {
-  data: any[];
-  fetchTrucks?: () => Promise<void>;
+interface User {
+  id: string | number;
+  _id?: string | number;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  createdAt?: string;
+  [key: string]: any;
 }
 
-export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
-  // Normalize trucks: always have id, assignedDrivers as array, etc.
+interface UsersDataTableProps {
+  data: User[];
+  fetchUsers?: () => Promise<void>;
+}
+
+export function UsersDataTable({ data, fetchUsers }: UsersDataTableProps) {
   const normalized = React.useMemo(
     () =>
-      (data || []).map((t) => ({
-        ...t,
-        id: t.id || t._id,
-        assignedDrivers: Array.isArray(t.assignedDrivers)
-          ? t.assignedDrivers
-          : [],
-        createdAt: t.createdAt || undefined,
-        updatedAt: t.updatedAt || undefined,
+      (data || []).map((u) => ({
+        ...u,
+        id: u.id || u._id,
       })),
     [data]
   );
@@ -294,12 +219,12 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
     pageSize: 10,
   });
   const sortableId = React.useId();
-  const [order, setOrder] = React.useState<(string | number)[]>(() =>
-    normalized.map((t) => t.id)
+  const [order, setOrder] = React.useState<(string | number)[]>(
+    () => normalized.map((u) => u.id ?? "") as (string | number)[]
   );
   React.useEffect(() => {
-    setOrder(normalized.map((t) => t.id));
-  }, [normalized.length, normalized.map((t) => t.id).join(",")]);
+    setOrder(normalized.map((u) => u.id ?? "") as (string | number)[]);
+  }, [normalized]);
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor),
@@ -309,7 +234,7 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
 
   const table = useReactTable({
     data: normalized,
-    columns,
+    columns: userColumns,
     state: {
       sorting,
       columnVisibility,
@@ -328,8 +253,6 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
   // Refresh state
@@ -337,10 +260,10 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
   const handleRefresh = async () => {
     setRefreshing(true);
     try {
-      await fetchTrucks?.();
-      toast.success("Trucks refreshed");
+      await fetchUsers?.();
+      toast.success("Users refreshed");
     } catch {
-      toast.error("Failed to refresh trucks");
+      toast.error("Failed to refresh users");
     } finally {
       setRefreshing(false);
     }
@@ -355,14 +278,12 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
     if (oldIndex === -1 || newIndex === -1) return;
     const newOrder = arrayMove(order, oldIndex, newIndex);
     setOrder(newOrder);
-    // TODO: Optionally sync new order to backend here
     toast.success("Row order updated (UI only)");
   }
 
   return (
     <div className="w-full flex-col justify-start gap-6!">
       <div className="flex items-center justify-between mb-2!">
-        {/* ...other header content can go here if needed... */}
         <div className="flex-1"></div>
         <Button
           variant="default"
@@ -370,17 +291,16 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
           onClick={handleRefresh}
           disabled={refreshing}
           className="ml-2! bg-black text-white dark:bg-white dark:text-black border border-black dark:border-white hover:bg-neutral-900 dark:hover:bg-neutral-100"
-          title="Refresh trucks list"
+          title="Refresh users list"
         >
           <IconRefresh className="mr-1! size-4" />
           {refreshing ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
-      <div className="relative flex flex-col gap-4! overflow-auto px-4">
+      <div className="relative flex flex-col gap-4! overflow-auto !px-2">
         <div className="overflow-hidden rounded-lg border">
           <DndContext
             collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
             onDragEnd={handleDragEnd}
             sensors={sensors}
             id={sortableId}
@@ -420,10 +340,10 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
                 ) : (
                   <TableRow>
                     <TableCell
-                      colSpan={columns.length}
+                      colSpan={userColumns.length}
                       className="h-24! text-center!"
                     >
-                      No trucks found. Create a truck to get started.
+                      No users found. Create a user to get started.
                     </TableCell>
                   </TableRow>
                 )}
@@ -431,7 +351,6 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
             </Table>
           </DndContext>
         </div>
-
         {/* Pagination */}
         <div className="flex items-center justify-between px-4!">
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
@@ -439,30 +358,6 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
             {table.getFilteredRowModel().rows.length} row(s) selected.
           </div>
           <div className="flex w-full items-center gap-8! lg:w-fit!">
-            <div className="hidden items-center gap-2! lg:flex">
-              <Label htmlFor="rows-per-page" className="text-sm font-medium">
-                Rows per page
-              </Label>
-              <Select
-                value={`${table.getState().pagination.pageSize}`}
-                onValueChange={(value) => {
-                  table.setPageSize(Number(value));
-                }}
-              >
-                <SelectTrigger size="sm" className="w-20!" id="rows-per-page">
-                  <SelectValue
-                    placeholder={table.getState().pagination.pageSize}
-                  />
-                </SelectTrigger>
-                <SelectContent side="top">
-                  {[10, 20, 30, 40, 50].map((pageSize) => (
-                    <SelectItem key={pageSize} value={`${pageSize}`}>
-                      {pageSize}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
             <div className="flex w-fit! items-center justify-center text-sm font-medium">
               Page {table.getState().pagination.pageIndex + 1} of{" "}
               {table.getPageCount()}
