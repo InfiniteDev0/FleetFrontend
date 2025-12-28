@@ -25,9 +25,10 @@ import { useSuperAdmin } from "../context/SuperAdminContext";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
 
-const UsersDataTable = dynamic(() => import("@/components/user-datatable"), {
-  ssr: false,
-});
+const UsersDataTable = dynamic(
+  () => import("@/components/user-datatable").then((mod) => mod.UsersDataTable),
+  { ssr: false }
+);
 
 const Users = () => {
   const {
