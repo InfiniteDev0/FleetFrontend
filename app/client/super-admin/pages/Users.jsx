@@ -23,7 +23,11 @@ import {
 import { Label } from "@/components/ui/label";
 import { useSuperAdmin } from "../context/SuperAdminContext";
 import { toast } from "sonner";
-import { UsersDataTable } from "@/components/user-datatable";
+import dynamic from "next/dynamic";
+
+const UsersDataTable = dynamic(() => import("@/components/user-datatable"), {
+  ssr: false,
+});
 
 const Users = () => {
   const {
@@ -40,13 +44,16 @@ const Users = () => {
     fetchUsers,
   } = useSuperAdmin();
 
-  const [status, setStatus] = useState("all");
+  const [roleFilter, setRoleFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [createLoading, setCreateLoading] = useState(false);
 
   const handleCreateUser = async (e) => {
     e.preventDefault();
+    setCreateLoading(true);
     const result = await createUser();
+    setCreateLoading(false);
     if (result?.success) {
       toast.success(result.message);
       setSheetOpen(false);
@@ -57,16 +64,15 @@ const Users = () => {
 
   const displayedUsers = React.useMemo(() => {
     return filteredUsers.filter((u) => {
+      const searchLower = search.toLowerCase();
       const matchesSearch =
-        u.name?.toLowerCase().includes(search.toLowerCase()) ||
-        u.email?.toLowerCase().includes(search.toLowerCase()) ||
-        u.role?.toLowerCase().includes(search.toLowerCase());
-      let matchesStatus = true;
-      if (status === "active") matchesStatus = u.isActive;
-      else if (status === "inactive") matchesStatus = !u.isActive;
-      return matchesSearch && matchesStatus;
+        u.name?.toLowerCase().includes(searchLower) ||
+        u.email?.toLowerCase().includes(searchLower) ||
+        u.role?.toLowerCase().includes(searchLower);
+      const matchesRole = roleFilter === "all" ? true : u.role === roleFilter;
+      return matchesSearch && matchesRole;
     });
-  }, [filteredUsers, search, status]);
+  }, [filteredUsers, search, roleFilter]);
 
   return (
     <div className="py-6! flex flex-col gap-5 px-4!">
@@ -93,15 +99,16 @@ const Users = () => {
             className="w-62.5 p-2!"
           />
 
-          <Select value={status} onValueChange={setStatus}>
+          <Select value={roleFilter} onValueChange={setRoleFilter}>
             <SelectTrigger className="w-40 p-2!">
               <IconFilter className="mr-2! size-4 text-muted-foreground" />
-              <SelectValue placeholder="All Status" />
+              <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Users</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
+              <SelectItem value="all">All Roles</SelectItem>
+              <SelectItem value="super_admin">Super Admin</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+              <SelectItem value="operator">Operator</SelectItem>
             </SelectContent>
           </Select>
 
@@ -198,8 +205,8 @@ const Users = () => {
                 )}
 
                 <SheetFooter className="mt-2!">
-                  <Button type="submit" disabled={!canCreate}>
-                    Create User
+                  <Button type="submit" disabled={!canCreate || createLoading}>
+                    {createLoading ? "Creating..." : "Create User"}
                   </Button>
                   <SheetClose asChild>
                     <Button type="button" variant="outline">

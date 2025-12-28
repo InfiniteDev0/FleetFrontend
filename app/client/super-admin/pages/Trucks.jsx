@@ -239,7 +239,7 @@ const Trucks = () => {
       {/* Trucks list */}
       <div>
         {loading ? (
-          <div className="text-center text-muted-foreground">
+          <div className=" text-center text-muted-foreground">
             Loading trucks...
           </div>
         ) : (

@@ -47,8 +47,7 @@ function getToken() {
 }
 
 export const SuperAdminProvider = ({ children }) => {
-  const currentUser =
-    typeof window !== "undefined" ? getUserFromCookie() : null;
+  const [currentUser, setCurrentUser] = useState(null);
   const currentRole = currentUser?.role || null;
   const allowedRoles = getAllowedRoles(currentRole);
   const canCreate = allowedRoles.length > 0;
@@ -75,6 +74,10 @@ export const SuperAdminProvider = ({ children }) => {
     capacity: "",
     status: "available",
   });
+
+  useEffect(() => {
+    setCurrentUser(getUserFromCookie());
+  }, []);
 
   // Fetch users
   const fetchUsers = async () => {
