@@ -43,8 +43,15 @@ export default function Home() {
     }
   }, [router]);
 
-  // Show a loading spinner while redirecting
+  // Show a full-page loader while redirecting
   return (
-<div class="loader"></div>
+    <div className="flex items-center justify-center h-full">
+      <div className="flex flex-col items-center gap-2">
+        <div className="loader"></div>
+        <span className="text-muted-foreground !mt-10 text-sm">
+          getting your dashboard ..data ready wait a few seconds
+        </span>
+      </div>
+    </div>
   );
 }
