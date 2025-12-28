@@ -1,3 +1,4 @@
+import * as React from "react";
 import { z } from "zod";
 import { ColumnDef } from "@tanstack/react-table";
 import { Badge } from "@/components/ui/badge";

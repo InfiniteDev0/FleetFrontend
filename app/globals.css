@@ -12,6 +12,7 @@
   user-select: none;
 }
 
+
 /* From Uiverse.io by SchawnnahJ */ 
 .loader {
  position: relative;
@@ -39,47 +40,56 @@
 .loader:after {
  animation: after6 2s infinite;
 }
+:root {
+  /* Light mode colors */
+  --loader-pink: rgba(225, 20, 98, 0.75);
+  --loader-cyan: rgba(111, 202, 220, 0.75);
+  --loader-green: rgba(61, 184, 143, 0.75);
+  --loader-yellow: rgba(233, 169, 32, 0.75);
+}
+
+.dark {
+  /* Dark mode colors */
+  --loader-pink: rgba(255, 105, 180, 0.85);   /* brighter pink */
+  --loader-cyan: rgba(64, 224, 208, 0.85);    /* teal cyan */
+  --loader-green: rgba(144, 238, 144, 0.85);  /* light green */
+  --loader-yellow: rgba(255, 215, 0, 0.85);   /* gold */
+}
 
 @keyframes before8 {
- 0% {
-  width: 0.5em;
-  box-shadow: 1em -0.5em rgba(225, 20, 98, 0.75), -1em 0.5em rgba(111, 202, 220, 0.75);
- }
-
- 35% {
-  width: 2.5em;
-  box-shadow: 0 -0.5em rgba(225, 20, 98, 0.75), 0 0.5em rgba(111, 202, 220, 0.75);
- }
-
- 70% {
-  width: 0.5em;
-  box-shadow: -1em -0.5em rgba(225, 20, 98, 0.75), 1em 0.5em rgba(111, 202, 220, 0.75);
- }
-
- 100% {
-  box-shadow: 1em -0.5em rgba(225, 20, 98, 0.75), -1em 0.5em rgba(111, 202, 220, 0.75);
- }
+  0% {
+    width: 0.5em;
+    box-shadow: 1em -0.5em var(--loader-pink), -1em 0.5em var(--loader-cyan);
+  }
+  35% {
+    width: 2.5em;
+    box-shadow: 0 -0.5em var(--loader-pink), 0 0.5em var(--loader-cyan);
+  }
+  70% {
+    width: 0.5em;
+    box-shadow: -1em -0.5em var(--loader-pink), 1em 0.5em var(--loader-cyan);
+  }
+  100% {
+    box-shadow: 1em -0.5em var(--loader-pink), -1em 0.5em var(--loader-cyan);
+  }
 }
 
 @keyframes after6 {
- 0% {
-  height: 0.5em;
-  box-shadow: 0.5em 1em rgba(61, 184, 143, 0.75), -0.5em -1em rgba(233, 169, 32, 0.75);
- }
-
- 35% {
-  height: 2.5em;
-  box-shadow: 0.5em 0 rgba(61, 184, 143, 0.75), -0.5em 0 rgba(233, 169, 32, 0.75);
- }
-
- 70% {
-  height: 0.5em;
-  box-shadow: 0.5em -1em rgba(61, 184, 143, 0.75), -0.5em 1em rgba(233, 169, 32, 0.75);
- }
-
- 100% {
-  box-shadow: 0.5em 1em rgba(61, 184, 143, 0.75), -0.5em -1em rgba(233, 169, 32, 0.75);
- }
+  0% {
+    height: 0.5em;
+    box-shadow: 0.5em 1em var(--loader-green), -0.5em -1em var(--loader-yellow);
+  }
+  35% {
+    height: 2.5em;
+    box-shadow: 0.5em 0 var(--loader-green), -0.5em 0 var(--loader-yellow);
+  }
+  70% {
+    height: 0.5em;
+    box-shadow: 0.5em -1em var(--loader-green), -0.5em 1em var(--loader-yellow);
+  }
+  100% {
+    box-shadow: 0.5em 1em var(--loader-green), -0.5em -1em var(--loader-yellow);
+  }
 }
 
 .loader {

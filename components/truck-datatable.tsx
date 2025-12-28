@@ -38,8 +38,8 @@ import {
   IconLoader,
   IconRefresh,
 } from "@tabler/icons-react";
-import * as React from "react";
-import { useMemo } from "react";
+import React, { useMemo, useState } from "react";
+// (Remove these stray lines, they are not valid at the top level)
 import {
   useReactTable,
   getCoreRowModel,
@@ -115,7 +115,7 @@ const columns: ColumnDef<z.infer<typeof truckSchema>>[] = [
   {
     id: "drag",
     header: () => null,
-    cell: ({ row }) => <DragHandle id={row.original._id} />,
+    cell: ({ row }) => <DragHandle id={row.original.id} />,
   },
   {
     accessorKey: "plateNumber",
@@ -184,7 +184,7 @@ const columns: ColumnDef<z.infer<typeof truckSchema>>[] = [
       return (
         <Badge
           variant="outline"
-          className={`!px-1.5 flex items-center !gap-1 ${colorClass}`}
+          className={`px-1.5! flex items-center gap-1! ${colorClass}`}
         >
           {icon}
           {status === "in-use"
@@ -201,7 +201,9 @@ const columns: ColumnDef<z.infer<typeof truckSchema>>[] = [
     header: "Created",
     cell: ({ row }) => (
       <span className="text-xs text-muted-foreground">
-        {new Date(row.original.createdAt).toLocaleDateString()}
+        {row.original.createdAt
+          ? new Date(row.original.createdAt).toLocaleDateString()
+          : "-"}
       </span>
     ),
   },
@@ -283,8 +285,10 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
 
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState({});
-  const [columnFilters, setColumnFilters] = React.useState([]);
-  const [sorting, setSorting] = React.useState([]);
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    []
+  );
+  const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: 10,
@@ -356,8 +360,8 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
   }
 
   return (
-    <div className="w-full flex-col justify-start !gap-6">
-      <div className="flex items-center justify-between !mb-2">
+    <div className="w-full flex-col justify-start gap-6!">
+      <div className="flex items-center justify-between mb-2!">
         {/* ...other header content can go here if needed... */}
         <div className="flex-1"></div>
         <Button
@@ -365,14 +369,14 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
           size="sm"
           onClick={handleRefresh}
           disabled={refreshing}
-          className="!ml-2 bg-black text-white dark:bg-white dark:text-black border border-black dark:border-white hover:bg-neutral-900 dark:hover:bg-neutral-100"
+          className="ml-2! bg-black text-white dark:bg-white dark:text-black border border-black dark:border-white hover:bg-neutral-900 dark:hover:bg-neutral-100"
           title="Refresh trucks list"
         >
-          <IconRefresh className="!mr-1 size-4" />
+          <IconRefresh className="mr-1! size-4" />
           {refreshing ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
-      <div className="relative flex flex-col !gap-4 overflow-auto !px-4 lg:!px-6">
+      <div className="relative flex flex-col gap-4! overflow-auto px-4! lg:px-6!">
         <div className="overflow-hidden rounded-lg border">
           <DndContext
             collisionDetection={closestCenter}
@@ -398,7 +402,7 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
                   </TableRow>
                 ))}
               </TableHeader>
-              <TableBody className="**:data-[slot=table-cell]:first:!w-8">
+              <TableBody className="**:data-[slot=table-cell]:first:w-8!">
                 {order.length ? (
                   <SortableContext
                     items={dataIds}
@@ -417,7 +421,7 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="!h-24 !text-center"
+                      className="h-24! text-center!"
                     >
                       No trucks found. Create a truck to get started.
                     </TableCell>
@@ -429,13 +433,13 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between !px-4">
+        <div className="flex items-center justify-between px-4!">
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
             {table.getFilteredSelectedRowModel().rows.length} of{" "}
             {table.getFilteredRowModel().rows.length} row(s) selected.
           </div>
-          <div className="flex w-full items-center !gap-8 lg:!w-fit">
-            <div className="hidden items-center !gap-2 lg:flex">
+          <div className="flex w-full items-center gap-8! lg:w-fit!">
+            <div className="hidden items-center gap-2! lg:flex">
               <Label htmlFor="rows-per-page" className="text-sm font-medium">
                 Rows per page
               </Label>
@@ -445,7 +449,7 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
                   table.setPageSize(Number(value));
                 }}
               >
-                <SelectTrigger size="sm" className="!w-20" id="rows-per-page">
+                <SelectTrigger size="sm" className="w-20!" id="rows-per-page">
                   <SelectValue
                     placeholder={table.getState().pagination.pageSize}
                   />
@@ -459,11 +463,11 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex !w-fit items-center justify-center text-sm font-medium">
+            <div className="flex w-fit! items-center justify-center text-sm font-medium">
               Page {table.getState().pagination.pageIndex + 1} of{" "}
               {table.getPageCount()}
             </div>
-            <div className="!ml-auto flex items-center !gap-2 lg:!ml-0">
+            <div className="ml-auto! flex items-center gap-2! lg:ml-0!">
               <Button
                 variant="outline"
                 className="hidden h-8 w-8 p-0 lg:flex"
