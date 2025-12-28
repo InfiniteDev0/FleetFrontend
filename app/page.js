@@ -45,41 +45,6 @@ export default function Home() {
 
   // Show a loading spinner while redirecting
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        height: "100vh",
-      }}
-    >
-      <div style={{ textAlign: "center" }}>
-        <svg
-          width="48"
-          height="48"
-          viewBox="0 0 48 48"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          style={{ marginBottom: "16px", animation: "spin 1s linear infinite" }}
-        >
-          <circle
-            cx="24"
-            cy="24"
-            r="20"
-            stroke="#3b82f6"
-            strokeWidth="4"
-            strokeDasharray="31.4 31.4"
-            strokeLinecap="round"
-          />
-        </svg>
-        <div>Loading, please wait...</div>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-        `}</style>
-      </div>
-    </div>
+<div class="loader"></div>
   );
 }

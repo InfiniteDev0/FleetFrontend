@@ -74,6 +74,11 @@ export const AuthProvider = ({ children }) => {
       }
 
       const data = await response.json();
+      // Store accessToken in localStorage and as a cookie
+      if (data.accessToken) {
+        localStorage.setItem("token", data.accessToken);
+        Cookies.set("token", data.accessToken, { expires: 7 });
+      }
       storeUser(data.user);
       return { success: true };
     } catch (err) {

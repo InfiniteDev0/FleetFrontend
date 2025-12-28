@@ -21,35 +21,55 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { useSuperAdmin } from "../context/SuperAdminContext"; // ✅ import hook
+import { useSuperAdmin } from "../context/SuperAdminContext";
+import { toast } from "sonner";
 
-const Admins = () => {
+const Users = () => {
   const {
-    error,
+    usersError,
     form,
     setForm,
     allowedRoles,
     canCreate,
-    filteredAdmins, // ✅ from context
-    admins, // ✅ from context
+    filteredUsers,
+    users,
     loading,
     currentUser,
-    createAdmin, // ✅ correct function name from context
+    createUser,
   } = useSuperAdmin();
 
-  // Local UI state
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
 
+  const handleCreateUser = async (e) => {
+    e.preventDefault();
+    const result = await createUser();
+    if (result?.success) {
+      toast.success(result.message);
+      setSheetOpen(false);
+    } else {
+      toast.error(result?.message || "Failed to create user");
+    }
+  };
+
+  const displayedUsers = filteredUsers.filter((u) => {
+    const matchesSearch =
+      u.name?.toLowerCase().includes(search.toLowerCase()) ||
+      u.email?.toLowerCase().includes(search.toLowerCase()) ||
+      u.role?.toLowerCase().includes(search.toLowerCase());
+    const matchesStatus =
+      status === "all" ? true : status === "active" ? u.isActive : !u.isActive;
+    return matchesSearch && matchesStatus;
+  });
+
   return (
     <div className="!py-6 flex flex-col gap-5 !px-4">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 !mb-6">
-        {/* Left: Title and Description */}
         <div>
-          <h2 className="text-xl font-semibold">Admins Management Page</h2>
+          <h2 className="text-xl font-semibold">Users Management Page</h2>
           <p className="text-sm text-muted-foreground">
-            Manage and monitor all admins.
+            Manage and monitor all users.
           </p>
           {currentUser ? (
             <p className="text-xs text-muted-foreground !mt-1">
@@ -60,9 +80,7 @@ const Admins = () => {
           )}
         </div>
 
-        {/* Right: Filters and Actions */}
         <div className="flex flex-col md:flex-row items-center gap-4">
-          {/* Search Field */}
           <Input
             placeholder="Search by name, email, or role..."
             value={search}
@@ -70,20 +88,18 @@ const Admins = () => {
             className="w-[250px]"
           />
 
-          {/* Status Filter */}
           <Select value={status} onValueChange={setStatus}>
             <SelectTrigger className="w-[160px]">
               <IconFilter className="!mr-2 size-4 text-muted-foreground" />
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="all">All Users</SelectItem>
               <SelectItem value="active">Active</SelectItem>
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
 
-          {/* Add Admin Button + Sheet */}
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button
@@ -92,35 +108,28 @@ const Admins = () => {
                 disabled={!canCreate}
                 title={
                   !canCreate
-                    ? "You do not have permission to add admins"
-                    : "Add Admin"
+                    ? "You do not have permission to add users"
+                    : "Add User"
                 }
               >
                 <IconPlus className="size-4" />
-                Add Admin
+                Add User
               </Button>
             </SheetTrigger>
             <SheetContent>
               <SheetHeader>
-                <SheetTitle>Add Admin</SheetTitle>
+                <SheetTitle>Add User</SheetTitle>
                 <SheetDescription>
                   Fill in the details to create a new user. Role options depend
                   on your permissions.
                 </SheetDescription>
               </SheetHeader>
 
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  createAdmin();
-                }}
-                className="grid gap-6 !mt-6"
-              >
-                {/* Name */}
+              <form onSubmit={handleCreateUser} className="grid gap-6 !mt-6">
                 <div className="grid gap-2">
-                  <Label htmlFor="admin-name">Name</Label>
+                  <Label htmlFor="user-name">Name</Label>
                   <Input
-                    id="admin-name"
+                    id="user-name"
                     value={form.name}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, name: e.target.value }))
@@ -130,11 +139,10 @@ const Admins = () => {
                   />
                 </div>
 
-                {/* Email */}
                 <div className="grid gap-2">
-                  <Label htmlFor="admin-email">Email</Label>
+                  <Label htmlFor="user-email">Email</Label>
                   <Input
-                    id="admin-email"
+                    id="user-email"
                     type="email"
                     value={form.email}
                     onChange={(e) =>
@@ -145,16 +153,15 @@ const Admins = () => {
                   />
                 </div>
 
-                {/* Role */}
                 <div className="grid gap-2">
-                  <Label htmlFor="admin-role">Role</Label>
+                  <Label htmlFor="user-role">Role</Label>
                   <Select
                     value={form.role}
                     onValueChange={(val) =>
                       setForm((f) => ({ ...f, role: val }))
                     }
                   >
-                    <SelectTrigger id="admin-role" className="w-full">
+                    <SelectTrigger id="user-role" className="w-full">
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                     <SelectContent>
@@ -167,16 +174,15 @@ const Admins = () => {
                   </Select>
                 </div>
 
-                {/* Active status */}
                 <div className="grid gap-2">
-                  <Label htmlFor="admin-active">Status</Label>
+                  <Label htmlFor="user-active">Status</Label>
                   <Select
                     value={form.isActive}
                     onValueChange={(val) =>
                       setForm((f) => ({ ...f, isActive: val }))
                     }
                   >
-                    <SelectTrigger id="admin-active" className="w-full">
+                    <SelectTrigger id="user-active" className="w-full">
                       <SelectValue placeholder="Select status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -186,12 +192,13 @@ const Admins = () => {
                   </Select>
                 </div>
 
-                {/* Error display */}
-                {error && <div className="text-red-600 text-sm">{error}</div>}
+                {usersError && (
+                  <div className="text-red-600 text-sm">{usersError}</div>
+                )}
 
                 <SheetFooter className="!mt-2">
                   <Button type="submit" disabled={!canCreate}>
-                    Create user
+                    Create User
                   </Button>
                   <SheetClose asChild>
                     <Button type="button" variant="outline">
@@ -205,22 +212,21 @@ const Admins = () => {
         </div>
       </div>
 
-      {/* Admins list */}
       <div className="flex flex-col gap-4">
         {loading ? (
-          <div className="text-muted-foreground">Loading admins...</div>
-        ) : filteredAdmins.length === 0 ? (
+          <div className="text-muted-foreground">Loading users...</div>
+        ) : displayedUsers.length === 0 ? (
           <div className="min-h-[30vh] flex items-center justify-center text-muted-foreground">
-            No admins found. Create an admin to get started.
+            No users found. Create a user to get started.
           </div>
         ) : (
           <div className="rounded-xl border bg-card">
             <div className="p-4 border-b text-sm text-muted-foreground">
-              Showing {filteredAdmins.length} of {admins.length}
+              Showing {displayedUsers.length} of {users.length}
             </div>
             <div className="p-4">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {filteredAdmins.map((u) => (
+                {displayedUsers.map((u) => (
                   <div
                     key={u.id || u._id}
                     className="rounded-lg border p-4 flex flex-col gap-1"
@@ -247,4 +253,4 @@ const Admins = () => {
   );
 };
 
-export default Admins;
+export default Users;

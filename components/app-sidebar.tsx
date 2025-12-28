@@ -2,17 +2,13 @@
 import * as React from "react";
 import {
   FileChartLine,
-  HelpCircle,
   LayoutDashboard,
   Route,
-  Settings,
   Toolbox,
   Truck,
   UserRound,
-  UsersRound,
 } from "lucide-react";
 
-import { NavSecondary } from "@/components/nav-secondary";
 import { NavUser } from "@/components/nav-user";
 import {
   Sidebar,
@@ -34,17 +30,11 @@ const data = {
 
   navMain: [
     { title: "Dashboard", icon: LayoutDashboard },
-    { title: "Admins", icon: UserRound },
+    { title: "Users", icon: UserRound },
     { title: "Trucks", icon: Truck },
     { title: "Trips", icon: Route },
     { title: "Repairs", icon: Toolbox },
-    { title: "Operators", icon: UsersRound },
     { title: "Reports", icon: FileChartLine },
-  ],
-
-  navSecondary: [
-    { title: "System Settings", url: "/super-admin/settings", icon: Settings },
-    { title: "Help & Support", url: "/help", icon: HelpCircle },
   ],
 };
 
@@ -98,9 +88,6 @@ export function AppSidebar({
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
-
-        {/* Secondary Navigation */}
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
       </SidebarContent>
 
       <SidebarFooter>

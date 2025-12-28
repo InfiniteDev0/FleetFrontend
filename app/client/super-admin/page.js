@@ -2,16 +2,7 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { SiteHeader } from "@/components/site-header";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import React, { useEffect, useState } from "react";
-
-// Import your section components
-import Dashboard from "./pages/Dashboard";
-import Admins from "./pages/Admins";
-import Trucks from "./pages/Trucks";
-import Operators from "./pages/Operators";
-import Financials from "./pages/Financials";
-import Trips from "./pages/Trips";
-import Repairs from "./pages/Repairs";
+import React, { useState, useEffect, Suspense } from "react";
 
 import {
   LayoutDashboard,
@@ -26,11 +17,21 @@ import { Calendar28 } from "@/components/Calender28";
 export const iframeHeight = "800px";
 export const description = "A sidebar with a header and a search form.";
 
+// Lazy imports (sections only load when needed)
+const Dashboard = React.lazy(() => import("./pages/Dashboard"));
+const Trucks = React.lazy(() => import("./pages/Trucks"));
+const Financials = React.lazy(() => import("./pages/Financials"));
+const Trips = React.lazy(() => import("./pages/Trips"));
+const Repairs = React.lazy(() => import("./pages/Repairs"));
+const Users = React.lazy(() => import("./pages/Users"));
+
 export default function Page() {
   const [activeSection, setActiveSection] = useState("Dashboard");
+  const [loading, setLoading] = useState(false);
+  const [sectionToRender, setSectionToRender] = useState("Dashboard");
 
   // Listen for navigation events
-  React.useEffect(() => {
+  useEffect(() => {
     const handleNavigate = (event) => {
       setActiveSection(event.detail);
     };
@@ -39,20 +40,28 @@ export default function Page() {
       window.removeEventListener("navigateToSection", handleNavigate);
   }, []);
 
+  // Handle loading delay when switching sections
+  useEffect(() => {
+    setLoading(true);
+    const timer = setTimeout(() => {
+      setSectionToRender(activeSection);
+      setLoading(false);
+    }, 6000); // 6 seconds delay
+    return () => clearTimeout(timer);
+  }, [activeSection]);
+
   const renderSection = () => {
-    switch (activeSection) {
+    switch (sectionToRender) {
       case "Dashboard":
         return <Dashboard />;
-      case "Admins":
-        return <Admins />;
+      case "Users":
+        return <Users />;
       case "Trucks":
         return <Trucks />;
       case "Trips":
         return <Trips />;
       case "Repairs":
         return <Repairs />;
-      case "Operators":
-        return <Operators />;
       case "Financials":
         return <Financials />;
       default:
@@ -64,7 +73,7 @@ export default function Page() {
     switch (activeSection) {
       case "Dashboard":
         return LayoutDashboard;
-      case "Admins":
+      case "Users":
         return UserIcon;
       case "Trucks":
         return Truck;
@@ -101,7 +110,28 @@ export default function Page() {
             </div>
             {/* Main Section */}
             <div className="flex-1 overflow-y-auto px-4 py-6">
-              {renderSection()}
+              {loading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="loader"></div>
+                    <span className="text-muted-foreground !mt-10 text-sm">
+                      Loading {activeSection}...
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <Suspense
+                  fallback={
+                    <div className="flex items-center justify-center h-full">
+                      <span className="text-muted-foreground text-sm">
+                        Preparing {activeSection}...
+                      </span>
+                    </div>
+                  }
+                >
+                  {renderSection()}
+                </Suspense>
+              )}
             </div>
           </SidebarInset>
         </div>

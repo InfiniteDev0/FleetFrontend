@@ -6,6 +6,7 @@ import React, {
   useEffect,
   useMemo,
 } from "react";
+import Cookies from "js-cookie";
 
 const SuperAdminContext = createContext();
 
@@ -23,12 +24,11 @@ function getUserFromCookie() {
     const userCookie = cookies.find((c) => c.startsWith("user="));
     if (!userCookie) return null;
     const value = decodeURIComponent(userCookie.split("=")[1]);
-    return JSON.parse(value); // already parsed JSON
+    return JSON.parse(value);
   } catch {
     return null;
   }
 }
-
 
 // Role options enforced by current user role
 function getAllowedRoles(role) {
@@ -37,21 +37,34 @@ function getAllowedRoles(role) {
   return [];
 }
 
-export const SuperAdminProvider = ({ children }) => {
+// Token helper
+function getToken() {
+  if (typeof window === "undefined") return null;
+  const lsToken = localStorage.getItem("token");
+  if (lsToken) return lsToken;
+  const cookieToken = Cookies.get("token");
+  return cookieToken || null;
+}
 
-    
+export const SuperAdminProvider = ({ children }) => {
   const currentUser =
     typeof window !== "undefined" ? getUserFromCookie() : null;
   const currentRole = currentUser?.role || null;
   const allowedRoles = getAllowedRoles(currentRole);
   const canCreate = allowedRoles.length > 0;
 
-  // Admins state
-  const [admins, setAdmins] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  // Users state
+  const [users, setUsers] = useState([]);
+  const [usersError, setUsersError] = useState(null);
 
-  // Shared form state (used for both admins and trucks)
+  // Trucks state
+  const [trucks, setTrucks] = useState([]);
+  const [trucksError, setTrucksError] = useState(null);
+
+  // Shared loading
+  const [loading, setLoading] = useState(false);
+
+  // Shared form state
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -63,56 +76,54 @@ export const SuperAdminProvider = ({ children }) => {
     status: "available",
   });
 
-  // Fetch admins
-  const fetchAdmins = async () => {
+  // Fetch users
+  const fetchUsers = async () => {
     try {
       setLoading(true);
-      setError(null);
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users?role=admin`,
-        {
-          method: "GET",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-        }
-      );
-      if (!res.ok) throw new Error(`Failed to fetch admins: ${res.status}`);
+      setUsersError(null);
+
+      const token = getToken();
+      if (!token) throw new Error("Missing token. Please re-login.");
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || `Failed to fetch users: ${res.status}`);
+      }
+
       const data = await res.json();
-      const list = data.users || data.data || [];
-      setAdmins(list);
+      setUsers(data.users || data.data || []);
     } catch (e) {
-      setError(e.message);
+      setUsersError(e.message || "Failed to fetch users");
     } finally {
       setLoading(false);
     }
   };
 
-  // Create admin
-  const createAdmin = async () => {
-    setError(null);
-    if (!canCreate) {
-      setError("You do not have permission to create users.");
-      return;
-    }
-    if (!allowedRoles.includes(form.role)) {
-      setError("Selected role is not allowed for your account.");
-      return;
-    }
-    if (!form.name || !form.email || !form.role) {
-      setError("All fields are required.");
-      return;
-    }
-    if (form.role === "super_admin") {
-      setError("Cannot create Super Admin.");
-      return;
-    }
-
+  // Create user
+  const createUser = async () => {
     try {
+      setLoading(true);
+      setUsersError(null);
+
+      const token = getToken();
+      if (!token) throw new Error("Missing token. Please re-login.");
+
       const tmpPassword = Math.random().toString(36).slice(2, 10);
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           name: form.name,
           email: form.email,
@@ -125,8 +136,7 @@ export const SuperAdminProvider = ({ children }) => {
       const result = await res.json();
       if (!res.ok) throw new Error(result?.message || "Failed to create user");
 
-      await fetchAdmins();
-      // reset form
+      await fetchUsers();
       setForm({
         ...form,
         name: "",
@@ -134,31 +144,44 @@ export const SuperAdminProvider = ({ children }) => {
         role: allowedRoles[0] || "",
         isActive: "true",
       });
+
+      return {
+        success: true,
+        message: result.message || "User created successfully",
+      };
     } catch (e) {
-      setError(e.message);
+      setUsersError(e.message || "Failed to create user");
+      return { success: false, message: e.message };
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Filtered admins (status/search handled in component, not here)
-  const filteredAdmins = useMemo(() => admins, [admins]);
+  const filteredUsers = useMemo(() => users, [users]);
 
-  // Trucks state
-  const [trucks, setTrucks] = useState([]);
-
+  // Fetch trucks
   const getAllTrucks = async () => {
     try {
       setLoading(true);
-      setError(null);
+      setTrucksError(null);
+
+      const token = getToken();
+      if (!token) throw new Error("Missing token. Please re-login.");
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`, {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
       });
+
       if (!res.ok) throw new Error("Failed to fetch trucks");
+
       const data = await res.json();
       setTrucks(data.data || []);
     } catch (e) {
-      setError(e.message);
+      setTrucksError(e.message || "Failed to fetch trucks");
     } finally {
       setLoading(false);
     }
@@ -166,31 +189,35 @@ export const SuperAdminProvider = ({ children }) => {
 
   useEffect(() => {
     getAllTrucks();
-    fetchAdmins();
+    fetchUsers();
   }, []);
 
-  // Filtered trucks (status/search handled in component, not here)
   const filteredTrucks = useMemo(() => trucks, [trucks]);
 
   // Create truck
   const handleCreateTruck = async (e) => {
     e.preventDefault();
-    setError(null);
+    setTrucksError(null);
 
     if (!canCreate) {
-      setError("You do not have permission to create trucks.");
+      setTrucksError("You do not have permission to create trucks.");
       return;
     }
     if (!form.plateNumber || !form.model || !form.capacity) {
-      setError("All fields are required.");
+      setTrucksError("All fields are required.");
       return;
     }
 
     try {
+      const token = getToken();
+      if (!token) throw new Error("Missing token. Please re-login.");
+
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/trucks`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           plateNumber: form.plateNumber,
           model: form.model,
@@ -200,10 +227,12 @@ export const SuperAdminProvider = ({ children }) => {
       });
 
       const result = await res.json();
-      if (!res.ok) throw new Error(result?.message || "Failed to create truck");
+      if (!res.ok || !result.success) {
+        throw new Error(result?.message || "Failed to create truck");
+      }
 
       await getAllTrucks();
-      // reset form
+
       setForm({
         ...form,
         plateNumber: "",
@@ -212,7 +241,7 @@ export const SuperAdminProvider = ({ children }) => {
         status: "available",
       });
     } catch (e) {
-      setError(e.message);
+      setTrucksError(e.message || "Failed to create truck");
     }
   };
 
@@ -223,15 +252,20 @@ export const SuperAdminProvider = ({ children }) => {
         currentRole,
         allowedRoles,
         canCreate,
-        admins,
+        users,
         trucks,
         loading,
-        error,
+        usersError,
+        trucksError,
+        // tripsError,
+        // repairsError,
+        // operatorsError,
+        // reportsError,
         form,
         setForm,
-        fetchAdmins,
-        createAdmin,
-        filteredAdmins,
+        fetchUsers,
+        createUser,
+        filteredUsers,
         filteredTrucks,
         handleCreateTruck,
       }}

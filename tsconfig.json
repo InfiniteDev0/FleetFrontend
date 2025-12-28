@@ -29,6 +29,6 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts"
-, "app/layout.js", "app/page.js", "app/client/super-admin/page.js", "components/login-form.js"  ],
+, "app/layout.js", "app/page.js", "app/client/super-admin/page.js", "components/login-form.js", "app/client/super-admin/pages/Trucks.jsx"  ],
   "exclude": ["node_modules"]
 }

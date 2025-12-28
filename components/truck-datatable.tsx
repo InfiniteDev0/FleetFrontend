@@ -36,6 +36,7 @@ import {
   IconDotsVertical,
   IconGripVertical,
   IconLoader,
+  IconRefresh,
 } from "@tabler/icons-react";
 import * as React from "react";
 import { useMemo } from "react";
@@ -76,36 +77,26 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { useTripsForDate } from "@/app/hooks/useFleetData";
-
-export const schema = z.object({
-  id: z.number(),
+export const truckSchema = z.object({
+  id: z.string().or(z.number()), // depending on your DB (_id as string or numeric id)
   plateNumber: z.string(),
   model: z.string(),
-  capacity: z.number(),
+  capacity: z.number(), // in tons
   status: z.enum(["available", "in-use", "maintenance", "ended"]),
-  assignedDrivers: z.array(z.string()),
+  assignedDrivers: z.array(z.string()), // driver IDs
   createdBy: z.string(),
-  updatedBy: z.string(),
-  trips: z.number().optional(),
-  route: z.string().optional(),
-  cityFrom: z.string().optional(),
-  cityTo: z.string().optional(),
-  todayTrips: z.number().optional(),
-  miles: z.number().optional(),
-  destinationMonth: z.string().optional(),
-  destinationYear: z.string().optional(),
-  tripDate: z.string().optional(),
-  mileageRemaining: z.number().optional(),
-  mileageCovered: z.number().optional(),
-  tripValue: z.number().optional(),
+  updatedBy: z.string().optional(),
+
+  // Optional metadata
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
 });
 
 // Create a separate component for the drag handle
-function DragHandle({ id }: { id: number }) {
+function DragHandle({ id }: { id: string | number }) {
   const { attributes, listeners } = useSortable({
-    id,
+    id: String(id),
   });
-
   return (
     <Button
       {...attributes}
@@ -120,11 +111,11 @@ function DragHandle({ id }: { id: number }) {
   );
 }
 
-const columns: ColumnDef<z.infer<typeof schema>>[] = [
+const columns: ColumnDef<z.infer<typeof truckSchema>>[] = [
   {
     id: "drag",
     header: () => null,
-    cell: ({ row }) => <DragHandle id={row.original.id} />,
+    cell: ({ row }) => <DragHandle id={row.original._id} />,
   },
   {
     accessorKey: "plateNumber",
@@ -135,22 +126,14 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: "cityFrom",
-    header: "From",
-    cell: ({ row }) => (
-      <span className="font-medium text-sm text-cyan-500">
-        {row.original.cityFrom || "-"}
-      </span>
-    ),
+    accessorKey: "model",
+    header: "Model",
+    cell: ({ row }) => <span>{row.original.model}</span>,
   },
   {
-    accessorKey: "cityTo",
-    header: "To",
-    cell: ({ row }) => (
-      <span className="font-medium text-sm text-red-500">
-        {row.original.cityTo || "-"}
-      </span>
-    ),
+    accessorKey: "capacity",
+    header: "Capacity (tons)",
+    cell: ({ row }) => <span>{row.original.capacity}</span>,
   },
   {
     accessorKey: "assignedDrivers",
@@ -159,11 +142,11 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
       const driverIds = row.original.assignedDrivers;
       const driversList = (table.options.meta as any)?.drivers || [];
       const names = driverIds
-        .map((id) => {
+        .map((id: string) => {
           const found = driversList.find((d: any) => {
             const driverIdStr = String(d.id || d._id);
             const idStr = String(id);
-            return driverIdStr === idStr || d.id === Number(id) || d._id === id;
+            return driverIdStr === idStr;
           });
           return found ? found.name : null;
         })
@@ -214,6 +197,15 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
     },
   },
   {
+    accessorKey: "createdAt",
+    header: "Created",
+    cell: ({ row }) => (
+      <span className="text-xs text-muted-foreground">
+        {new Date(row.original.createdAt).toLocaleDateString()}
+      </span>
+    ),
+  },
+  {
     id: "actions",
     cell: () => (
       <DropdownMenu>
@@ -241,7 +233,7 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
   },
 ];
 
-function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
+function DraggableRow({ row }: { row: Row<z.infer<typeof truckSchema>> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
   });
@@ -266,80 +258,54 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
   );
 }
 
-export function DataTable({
-  data: initialData,
-}: {
-  data?: z.infer<typeof schema>[];
-}) {
-  const { trips, drivers, loading: dataLoading } = useTripsForDate();
+import { toast } from "sonner";
 
-  // Use provided data or fetched trips
-  const [data, setData] = React.useState<z.infer<typeof schema>[]>(() => {
-    if (initialData && initialData.length) {
-      return initialData;
-    }
-    return trips.map((truck) => ({
-      ...truck,
-      trips: truck.trips || 0,
-      todayTrips: truck.todayTrips || 0,
-      miles: truck.miles || 0,
-      mileageRemaining: truck.mileageRemaining,
-      mileageCovered:
-        truck.mileageCovered ||
-        (truck.status === "ended" ? truck.miles : undefined),
-      tripValue: truck.tripValue,
-    })) as z.infer<typeof schema>[];
-  });
+interface TrucksDataTableProps {
+  data: any[];
+  fetchTrucks?: () => Promise<void>;
+}
 
-  // Update data when trips change
-  React.useEffect(() => {
-    if (initialData && initialData.length) {
-      setData(initialData);
-    } else {
-      setData(
-        trips.map((truck) => ({
-          ...truck,
-          trips: truck.trips || 0,
-          todayTrips: truck.todayTrips || 0,
-          miles: truck.miles || 0,
-          mileageRemaining: truck.mileageRemaining,
-          mileageCovered:
-            truck.mileageCovered ||
-            (truck.status === "ended" ? truck.miles : undefined),
-          tripValue: truck.tripValue,
-        })) as z.infer<typeof schema>[]
-      );
-    }
-  }, [trips, initialData]);
-  const [rowSelection, setRowSelection] = React.useState({});
-  const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
+  // Normalize trucks: always have id, assignedDrivers as array, etc.
+  const normalized = React.useMemo(
+    () =>
+      (data || []).map((t) => ({
+        ...t,
+        id: t.id || t._id,
+        assignedDrivers: Array.isArray(t.assignedDrivers)
+          ? t.assignedDrivers
+          : [],
+        createdAt: t.createdAt || undefined,
+        updatedAt: t.updatedAt || undefined,
+      })),
+    [data]
   );
-  const [sorting, setSorting] = React.useState<SortingState>([]);
+
+  const [rowSelection, setRowSelection] = React.useState({});
+  const [columnVisibility, setColumnVisibility] = React.useState({});
+  const [columnFilters, setColumnFilters] = React.useState([]);
+  const [sorting, setSorting] = React.useState([]);
   const [pagination, setPagination] = React.useState({
     pageIndex: 0,
     pageSize: 10,
   });
   const sortableId = React.useId();
+  const [order, setOrder] = React.useState<(string | number)[]>(() =>
+    normalized.map((t) => t.id)
+  );
+  React.useEffect(() => {
+    setOrder(normalized.map((t) => t.id));
+  }, [normalized.length, normalized.map((t) => t.id).join(",")]);
   const sensors = useSensors(
-    useSensor(MouseSensor, {}),
-    useSensor(TouchSensor, {}),
-    useSensor(KeyboardSensor, {})
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor),
+    useSensor(KeyboardSensor)
   );
-
-  const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => data?.map(({ id }) => id) || [],
-    [data]
-  );
+  const dataIds = order.map(String);
 
   const table = useReactTable({
-    data,
+    data: normalized,
     columns,
-    meta: {
-      drivers,
-    },
     state: {
       sorting,
       columnVisibility,
@@ -347,7 +313,7 @@ export function DataTable({
       columnFilters,
       pagination,
     },
-    getRowId: (row) => row.id.toString(),
+    getRowId: (row) => row.id?.toString(),
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
@@ -362,73 +328,50 @@ export function DataTable({
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
+  // Refresh state
+  const [refreshing, setRefreshing] = React.useState(false);
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      await fetchTrucks?.();
+      toast.success("Trucks refreshed");
+    } catch {
+      toast.error("Failed to refresh trucks");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Drag and drop handler
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-    if (active && over && active.id !== over.id) {
-      setData((data) => {
-        const oldIndex = dataIds.indexOf(active.id);
-        const newIndex = dataIds.indexOf(over.id);
-        return arrayMove(data, oldIndex, newIndex);
-      });
-    }
+    if (!over || active.id === over.id) return;
+    const oldIndex = order.findIndex((id) => String(id) === String(active.id));
+    const newIndex = order.findIndex((id) => String(id) === String(over.id));
+    if (oldIndex === -1 || newIndex === -1) return;
+    const newOrder = arrayMove(order, oldIndex, newIndex);
+    setOrder(newOrder);
+    // TODO: Optionally sync new order to backend here
+    toast.success("Row order updated (UI only)");
   }
 
   return (
     <div className="w-full flex-col justify-start !gap-6">
-      {/* Header + Actions */}
-      <div className="flex items-center justify-between !px-4 !mb-4 lg:!px-6">
-        <h1 className="text-xl font-semibold">Trips</h1>
-        <div className="flex items-center !gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <IconLayoutColumns />
-                <span className="hidden lg:inline">Customize Columns</span>
-                <span className="lg:hidden">Columns</span>
-                <IconChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {table
-                .getAllColumns()
-                .filter(
-                  (column) =>
-                    typeof column.accessorFn !== "undefined" &&
-                    column.getCanHide()
-                )
-                .map((column) => (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                const event = new CustomEvent("navigateToSection", {
-                  detail: "Trips",
-                });
-                window.dispatchEvent(event);
-              }
-            }}
-          >
-            <IconPlus />
-            <span className="hidden lg:inline">Add Trip</span>
-          </Button>
-        </div>
+      <div className="flex items-center justify-between !mb-2">
+        {/* ...other header content can go here if needed... */}
+        <div className="flex-1"></div>
+        <Button
+          variant="default"
+          size="sm"
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="!ml-2 bg-black text-white dark:bg-white dark:text-black border border-black dark:border-white hover:bg-neutral-900 dark:hover:bg-neutral-100"
+          title="Refresh trucks list"
+        >
+          <IconRefresh className="!mr-1 size-4" />
+          {refreshing ? "Refreshing..." : "Refresh"}
+        </Button>
       </div>
-
-      {/* Table */}
       <div className="relative flex flex-col !gap-4 overflow-auto !px-4 lg:!px-6">
         <div className="overflow-hidden rounded-lg border">
           <DndContext
@@ -455,23 +398,28 @@ export function DataTable({
                   </TableRow>
                 ))}
               </TableHeader>
-              <TableBody className="**:data-[slot=table-cell]:first:w-8">
-                {table.getRowModel().rows?.length ? (
+              <TableBody className="**:data-[slot=table-cell]:first:!w-8">
+                {order.length ? (
                   <SortableContext
                     items={dataIds}
                     strategy={verticalListSortingStrategy}
                   >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow key={row.id} row={row} />
-                    ))}
+                    {order.map((id) => {
+                      const row = table
+                        .getRowModel()
+                        .rows.find((r) => String(r.id) === String(id));
+                      return row ? (
+                        <DraggableRow key={row.id} row={row} />
+                      ) : null;
+                    })}
                   </SortableContext>
                 ) : (
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="h-24 text-center"
+                      className="!h-24 !text-center"
                     >
-                      No results.
+                      No trucks found. Create a truck to get started.
                     </TableCell>
                   </TableRow>
                 )}
@@ -486,7 +434,7 @@ export function DataTable({
             {table.getFilteredSelectedRowModel().rows.length} of{" "}
             {table.getFilteredRowModel().rows.length} row(s) selected.
           </div>
-          <div className="flex w-full items-center !gap-8 lg:w-fit">
+          <div className="flex w-full items-center !gap-8 lg:!w-fit">
             <div className="hidden items-center !gap-2 lg:flex">
               <Label htmlFor="rows-per-page" className="text-sm font-medium">
                 Rows per page
@@ -497,7 +445,7 @@ export function DataTable({
                   table.setPageSize(Number(value));
                 }}
               >
-                <SelectTrigger size="sm" className="w-20" id="rows-per-page">
+                <SelectTrigger size="sm" className="!w-20" id="rows-per-page">
                   <SelectValue
                     placeholder={table.getState().pagination.pageSize}
                   />
@@ -511,11 +459,11 @@ export function DataTable({
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex w-fit items-center justify-center text-sm font-medium">
+            <div className="flex !w-fit items-center justify-center text-sm font-medium">
               Page {table.getState().pagination.pageIndex + 1} of{" "}
               {table.getPageCount()}
             </div>
-            <div className="ml-auto flex items-center !gap-2 lg:!ml-0">
+            <div className="!ml-auto flex items-center !gap-2 lg:!ml-0">
               <Button
                 variant="outline"
                 className="hidden h-8 w-8 p-0 lg:flex"
