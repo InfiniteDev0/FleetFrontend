@@ -1,6 +1,6 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import { Menu, PanelRight } from "lucide-react";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
 
@@ -64,7 +64,7 @@ export function SiteHeader({ activeSection }: { activeSection?: string }) {
             className="h-8 w-8"
             onClick={toggleSidebar}
           >
-            <Menu className="size-4" />
+            <PanelRight className="size-4" />
           </Button>
 
           <Separator orientation="vertical" className="h-4" />
@@ -72,14 +72,8 @@ export function SiteHeader({ activeSection }: { activeSection?: string }) {
           <Breadcrumb className="hidden sm:block">
             <BreadcrumbList>
               <BreadcrumbItem>
-                <BreadcrumbPage>Super Admin</BreadcrumbPage>
+                <BreadcrumbPage>Super Admin Control Panel</BreadcrumbPage>
               </BreadcrumbItem>
-              <React.Fragment>
-                <BreadcrumbSeparator />
-                <BreadcrumbItem>
-                  <BreadcrumbPage>{activeSection}</BreadcrumbPage>
-                </BreadcrumbItem>
-              </React.Fragment>
             </BreadcrumbList>
           </Breadcrumb>
         </div>

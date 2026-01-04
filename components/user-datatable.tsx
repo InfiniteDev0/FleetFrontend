@@ -1,4 +1,17 @@
+"use client";
+
 import React from "react";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 import {
   Table,
   TableHeader,
@@ -9,14 +22,11 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import // Removed unused dropdown imports
+"@/components/ui/dropdown-menu";
+// Removed unused Eye, Trash2 imports
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import {
-  IconDotsVertical,
+  // Removed unused IconDotsVertical import
   IconCircleCheckFilled,
   IconLoader,
   IconRefresh,
@@ -57,7 +67,112 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
 
-const userColumns: ColumnDef<any>[] = [
+import { useSuperAdmin } from "../app/client/super-admin/context/SuperAdminContext";
+import { MoreHorizontal } from "lucide-react";
+
+function DeleteUserAlert({
+  userName,
+  userId,
+  fetchUsers,
+  trigger,
+}: {
+  userName: string;
+  userId: string | number;
+  fetchUsers?: () => Promise<void>;
+  trigger: React.ReactNode;
+}) {
+  const [input, setInput] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const { handleDeleteUser } = useSuperAdmin();
+  const [open, setOpen] = React.useState(false);
+
+  const handleDelete = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const result = await handleDeleteUser(userId);
+      if (!result) {
+        toast.error("Failed to delete user");
+        throw new Error("Failed to delete user");
+      }
+      if (fetchUsers) await fetchUsers();
+      toast.success(`User '${userName}' deleted successfully`);
+      setOpen(false);
+    } catch (e) {
+      const errorMsg =
+        e && typeof e === "object" && "message" in e
+          ? (e.message as string)
+          : "Failed to delete user";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete User</AlertDialogTitle>
+          <AlertDialogDescription>
+            <>
+              This will permanently delete the user and related resources.
+              <br />
+              <input
+                type="text"
+                className="!mt-2 w-full border rounded !px-2 !py-1"
+                placeholder={`Type '${userName}' to confirm`}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                disabled={loading}
+              />
+              <br />
+              <span className="text-red-900 text-xs mt-2! block">
+                Deleting {userName} cannot be undone.
+              </span>
+              {error && (
+                <span className="text-red-600 text-xs mt-2!">{error}</span>
+              )}
+            </>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+          <AlertDialogAction asChild>
+            <button
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+              disabled={
+                input.trim().toLowerCase() !== userName.trim().toLowerCase() ||
+                loading
+              }
+              onClick={async (e) => {
+                e.preventDefault();
+                await handleDelete();
+              }}
+            >
+              {loading ? "Deleting..." : "Delete User"}
+            </button>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
+interface User {
+  id: string | number;
+  _id?: string | number;
+  name: string;
+  email: string;
+  role: string;
+  isActive: boolean;
+  createdAt?: string;
+}
+
+const userColumns: ColumnDef<User>[] = [
   {
     id: "drag",
     header: () => null,
@@ -99,7 +214,7 @@ const userColumns: ColumnDef<any>[] = [
       return (
         <Badge
           variant="outline"
-          className={`px-1.5! flex items-center gap-1! ${colorClass}`}
+          className={`px-1.5 flex items-center gap-1 ${colorClass}`}
         >
           {icon}
           {isActive ? "Active" : "Inactive"}
@@ -108,34 +223,23 @@ const userColumns: ColumnDef<any>[] = [
     },
   },
   {
-    accessorKey: "createdAt",
-    header: "Created",
-    cell: ({ row }) => (
-      <span className="text-xs text-muted-foreground">
-        {row.original.createdAt
-          ? new Date(row.original.createdAt).toLocaleDateString()
-          : "-"}
-      </span>
-    ),
-  },
-  {
     id: "actions",
-    cell: () => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
+    cell: (info) => (
+      <DeleteUserAlert
+        userName={info.row.original.name}
+        userId={info.row.original.id}
+        fetchUsers={(info.table.options.meta as any)?.fetchUsers}
+        trigger={
           <Button
             variant="ghost"
-            className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
             size="icon"
+            className="h-8 w-8 p-0 m-0 mb-2 rounded-full hover:bg-accent hover:text-accent-foreground transition"
           >
-            <IconDotsVertical />
             <span className="sr-only">Open menu</span>
+            <MoreHorizontal className="size-4" />
           </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem onClick={() => {}}>Edit</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+        }
+      />
     ),
   },
 ];
@@ -182,18 +286,8 @@ function DraggableRow({ row }: { row: Row<any> }) {
   );
 }
 
-interface User {
-  id: string | number;
-  _id?: string | number;
-  name: string;
-  email: string;
-  role: string;
-  isActive: boolean;
-  createdAt?: string;
-  [key: string]: any;
-}
-
 interface UsersDataTableProps {
+  meta?: { fetchUsers?: () => Promise<void> };
   data: User[];
   fetchUsers?: () => Promise<void>;
 }
@@ -234,7 +328,8 @@ export function UsersDataTable({ data, fetchUsers }: UsersDataTableProps) {
 
   const table = useReactTable({
     data: normalized,
-    columns: userColumns,
+    columns: userColumns as any,
+    meta: { fetchUsers },
     state: {
       sorting,
       columnVisibility,
@@ -242,7 +337,7 @@ export function UsersDataTable({ data, fetchUsers }: UsersDataTableProps) {
       columnFilters,
       pagination,
     },
-    getRowId: (row) => row.id?.toString(),
+    getRowId: (row) => row.id?.toString() ?? "",
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
@@ -297,7 +392,7 @@ export function UsersDataTable({ data, fetchUsers }: UsersDataTableProps) {
           {refreshing ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
-      <div className="relative flex flex-col gap-4! overflow-auto !px-2">
+      <div className="relative flex flex-col gap-4! overflow-auto px-2!">
         <div className="overflow-hidden rounded-lg border">
           <DndContext
             collisionDetection={closestCenter}

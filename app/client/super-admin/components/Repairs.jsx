@@ -23,7 +23,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { useSuperAdmin } from "../context/SuperAdminContext"; // ✅ import hook
 
-const Trips = () => {
+const Repairs = () => {
   const {
     error,
     form,
@@ -46,9 +46,11 @@ const Trips = () => {
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 !mb-6">
         {/* Left: Title */}
         <div>
-          <h2 className="text-xl font-semibold">Trips Management Page</h2>
+          <h2 className="text-xl font-semibold">
+            Truck Repairs Management Page
+          </h2>
           <p className="text-sm text-muted-foreground">
-            Manage and monitor all trips.
+            Manage and monitor all truck Repairs.
           </p>
           {currentUser ? (
             <p className="text-xs text-muted-foreground !mt-1">
@@ -63,7 +65,7 @@ const Trips = () => {
         <div className="flex flex-col md:flex-row items-center gap-4">
           {/* Search Field */}
           <Input
-            placeholder="Search by city or truck..."
+            placeholder="Search by plate or model..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-[250px]"
@@ -97,7 +99,7 @@ const Trips = () => {
                 }
               >
                 <IconPlus className="size-4" />
-                Add Trip
+                Make Repair
               </Button>
             </SheetTrigger>
             <SheetContent>
@@ -197,7 +199,7 @@ const Trips = () => {
           <div className="text-muted-foreground">Loading trucks...</div>
         ) : filteredTrucks.length === 0 ? (
           <div className="min-h-[30vh] flex items-center justify-center text-muted-foreground">
-            No trips found. Create a trip to get started.
+            No trucks found. Create a truck to get started.
           </div>
         ) : (
           <div className="rounded-xl border bg-card">
@@ -244,4 +246,4 @@ const Trips = () => {
   );
 };
 
-export default Trips;
+export default Repairs;

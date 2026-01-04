@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { DataTable } from "@/components/data-table";
+import { DataTable } from "@/components/trips-data-table";
 import { SectionCards } from "@/components/section-cards";
 
 import { TrendingUp } from "lucide-react";
@@ -74,7 +74,7 @@ const Dashboard = () => {
           <SectionCards />
 
           {/* Trucks table */}
-          <DataTable data={data.trucks} onNavigateToTrips={() => {}} />
+          {/* <DataTable data={data.trucks} onNavigateToTrips={() => {}} /> */}
 
           {/* Charts Section */}
           <div className="flex flex-wrap gap-6 !mt-6">

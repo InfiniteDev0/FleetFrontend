@@ -1,7 +1,11 @@
 {
   "compilerOptions": {
     "target": "ES2017",
-    "lib": ["dom", "dom.iterable", "esnext"],
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -19,7 +23,9 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": [
+        "./*"
+      ]
     }
   },
   "include": [
@@ -28,7 +34,15 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
-    "**/*.mts"
-, "app/layout.js", "app/page.js", "app/client/super-admin/page.js", "components/login-form.js", "app/client/super-admin/pages/Trucks.jsx"  ],
-  "exclude": ["node_modules"]
+    "**/*.mts",
+    "app/layout.js",
+    "app/page.js",
+    "app/client/super-admin/page.js",
+    "components/login-form.js",
+    "app/client/super-admin/components/Trucks.jsx",
+    "app/redirect/page.jsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }

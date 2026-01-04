@@ -100,9 +100,9 @@ export const AuthProvider = ({ children }) => {
             throw new Error(result?.message || "Login failed");
           }
 
-          // ✅ Read from localStorage (sync)
           const storedUser = localStorage.getItem("user");
           if (!storedUser) throw new Error("User not found in storage");
+
           let loggedInUser;
           try {
             loggedInUser = JSON.parse(storedUser);
@@ -110,22 +110,14 @@ export const AuthProvider = ({ children }) => {
             throw new Error("User data corrupted.");
           }
 
-          switch (loggedInUser?.role) {
-            case "super_admin":
-              router.push("/client/super-admin");
-              break;
-            case "admin":
-              router.push("/client/admin");
-              break;
-            case "operator":
-              router.push("/client/operator");
-              break;
-            default:
-              throw new Error("Unknown user role.");
-          }
+          // Instead of routing directly to the dashboard, go to a redirect page
+          // Pass role via query or rely on localStorage in the redirect page
+          router.push(
+            `/redirect?role=${encodeURIComponent(loggedInUser.role)}`
+          );
         })(),
         {
-          loading: "Logging in...",
+          loading: "Authenticating...",
           success: "Welcome back!",
           error: (err) => err.message || "Login failed",
         }

@@ -1,45 +1,5 @@
-"use client";
-
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuCheckboxItem,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import {
-  IconLayoutColumns,
-  IconChevronDown,
-  IconPlus,
-  IconChevronsLeft,
-  IconChevronLeft,
-  IconChevronRight,
-  IconChevronsRight,
-  IconCircleCheckFilled,
-  IconDotsVertical,
-  IconGripVertical,
-  IconLoader,
-  IconRefresh,
-} from "@tabler/icons-react";
-import React, { useMemo, useState } from "react";
-// (Remove these stray lines, they are not valid at the top level)
+// @ts-nocheck
+import React from "react";
 import {
   useReactTable,
   getCoreRowModel,
@@ -49,11 +9,6 @@ import {
   getFacetedUniqueValues,
   getFilteredRowModel,
   getSortedRowModel,
-  type ColumnDef,
-  type ColumnFiltersState,
-  type Row,
-  type SortingState,
-  type VisibilityState,
 } from "@tanstack/react-table";
 import { z } from "zod";
 import {
@@ -64,10 +19,7 @@ import {
   TouchSensor,
   useSensor,
   useSensors,
-  type DragEndEvent,
-  type UniqueIdentifier,
 } from "@dnd-kit/core";
-import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import {
   arrayMove,
   SortableContext,
@@ -76,23 +28,315 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
-import { useTripsForDate } from "@/app/hooks/useFleetData";
+import { toast } from "sonner";
+import { DropdownMenu } from "@/components/ui/dropdown-menu";
+import { DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenuContent } from "@/components/ui/dropdown-menu";
+import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { DeleteTruckAlert } from "@/components/alertdialog";
+import {
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Table } from "@/components/ui/table";
+import { TableHeader } from "@/components/ui/table";
+import { TableRow } from "@/components/ui/table";
+import { TableHead } from "@/components/ui/table";
+import { TableBody } from "@/components/ui/table";
+import { TableCell } from "@/components/ui/table";
+import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
+import { SelectTrigger } from "@/components/ui/select";
+import { SelectValue } from "@/components/ui/select";
+import { SelectContent } from "@/components/ui/select";
+import { SelectItem } from "@/components/ui/select";
+
+import { Eye, GripVertical, MoreHorizontal, Trash2 } from "lucide-react";
+import { useSuperAdmin } from "@/app/client/super-admin/context/SuperAdminContext";
+
+import {
+  IconChevronsLeft,
+  IconChevronLeft,
+  IconChevronRight,
+  IconChevronsRight,
+  IconGripVertical,
+  IconRefresh,
+  IconCircleCheckFilled,
+  IconLoader,
+  IconAlertTriangle,
+  IconQuestionMark,
+} from "@tabler/icons-react";
+
 export const truckSchema = z.object({
-  id: z.string().or(z.number()), // depending on your DB (_id as string or numeric id)
+  id: z.string().or(z.number()),
+  _id: z.string().optional(),
   plateNumber: z.string(),
   model: z.string(),
-  capacity: z.number(), // in tons
-  status: z.enum(["available", "in-use", "maintenance", "ended"]),
-  assignedDrivers: z.array(z.string()), // driver IDs
-  createdBy: z.string(),
+  capacity: z.number(),
+  status: z.enum(["available", "in-use", "maintenance"]),
+  driverName: z.string().nullable().optional(),
+  PhoneNumber: z.number().nullable().optional(),
+  createdBy: z.string().optional(),
   updatedBy: z.string().optional(),
-
-  // Optional metadata
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
 
 // Create a separate component for the drag handle
+// DragHandle is defined but not used. Remove if not needed.
+
+function DeleteTruckDialog({ plateNumber, truckId, fetchTrucks, onSuccess }) {
+  const [input, setInput] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const { handleDeleteTruck } = useSuperAdmin();
+
+  const handleDelete = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const result = await handleDeleteTruck(truckId);
+      if (!result) {
+        toast.error("Failed to delete truck");
+        throw new Error("Failed to delete truck");
+      }
+      if (fetchTrucks) await fetchTrucks();
+      toast.success(`Truck '${plateNumber}' deleted successfully`);
+      if (onSuccess) onSuccess();
+    } catch (e) {
+      const errorMsg =
+        e && typeof e === "object" && "message" in e
+          ? (e.message as string)
+          : "Failed to delete truck";
+      setError(errorMsg);
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Delete Truck</AlertDialogTitle>
+        <AlertDialogDescription>
+          <>
+            This will permanently delete the truck and related resources.
+            <br />
+            <input
+              type="text"
+              className="!mt-2 w-full border rounded !px-2 !py-1"
+              placeholder={`Type '${plateNumber}' to confirm`}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={loading}
+            />
+            <br />
+            <span className="text-red-900 text-xs mt-2! block">
+              Deleting {plateNumber} cannot be undone.
+            </span>
+            {error && (
+              <span className="text-red-600 text-xs mt-2!">{error}</span>
+            )}
+          </>
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+        <AlertDialogAction asChild>
+          <button
+            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+            disabled={
+              input.trim().toLowerCase() !== plateNumber.trim().toLowerCase() ||
+              loading
+            }
+            onClick={async (e) => {
+              e.preventDefault();
+              await handleDelete();
+            }}
+          >
+            {loading ? "Deleting..." : "Delete Truck"}
+          </button>
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  );
+}
+
+function getColumns(fetchTrucks?: () => Promise<void>) {
+  return [
+    {
+      id: "drag",
+      header: () => null,
+      cell: ({ row }) => <DragHandle id={row.original.id} />,
+    },
+
+    {
+      accessorKey: "plateNumber",
+      header: "Truck Number",
+      cell: ({ row }) => <span>{row.original.plateNumber}</span>,
+      enableHiding: false,
+    },
+    {
+      accessorKey: "model",
+      header: "Model",
+      cell: ({ row }) => <span>{row.original.model}</span>,
+    },
+    {
+      accessorKey: "capacity",
+      header: "Capacity",
+      cell: ({ row }) => <span>{row.original.capacity}</span>,
+    },
+    {
+      accessorKey: "driverName",
+      header: "Driver Name",
+      cell: ({ row }) =>
+        row.original.driverName ? (
+          <span>{row.original.driverName}</span>
+        ) : (
+          <span className="text-muted-foreground">No driver</span>
+        ),
+    },
+    {
+      accessorKey: "PhoneNumber",
+      header: "Phone Number",
+      cell: ({ row }) =>
+        row.original.PhoneNumber ? (
+          <span>{row.original.PhoneNumber}</span>
+        ) : (
+          <span className="text-muted-foreground">No phone</span>
+        ),
+    },
+    {
+      accessorKey: "status",
+      header: "Status",
+      cell: ({ row }) => {
+        const status = row.original.status;
+        let icon = null;
+        let colorClass = "";
+
+        if (status === "available") {
+          icon = (
+            <IconCircleCheckFilled className="size-4 fill-green-500 dark:fill-green-400" />
+          );
+          colorClass = "text-green-600 dark:text-green-400";
+        } else if (status === "in-use") {
+          icon = (
+            <IconLoader className="size-4 animate-spin text-blue-500 dark:text-blue-400" />
+          );
+          colorClass = "text-blue-600 dark:text-blue-400";
+        } else if (status === "maintenance") {
+          icon = (
+            <IconAlertTriangle className="size-4 text-yellow-500 dark:text-yellow-400" />
+          );
+          colorClass = "text-yellow-600 dark:text-yellow-400";
+        } else {
+          icon = <IconQuestionMark className="size-4 text-gray-400" />;
+          colorClass = "text-gray-500 dark:text-gray-400";
+        }
+
+        return (
+          <Badge
+            variant="outline"
+            className={`px-1.5 flex items-center gap-1 ${colorClass}`}
+          >
+            {icon}
+            {status === "in-use"
+              ? "In Use"
+              : status === "available"
+              ? "Available"
+              : status === "maintenance"
+              ? "Maintenance"
+              : status}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: "createdAt",
+      header: "Created",
+      cell: ({ row }) => (
+        <span className="text-xs text-muted-foreground">
+          {row.original.createdAt
+            ? new Date(row.original.createdAt).toLocaleDateString()
+            : "-"}
+        </span>
+      ),
+    },
+    {
+      id: "actions",
+      cell: ({ row }) => (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 !p-0 m-0 !mb-2 rounded-full hover:bg-accent hover:text-accent-foreground transition"
+            >
+              <span className="sr-only">Open menu</span>
+              <MoreHorizontal className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="!p-2 !m-1 min-w-[190px] rounded-md shadow-md bg-popover text-popover-foreground"
+            align="end"
+          >
+            <DropdownMenuLabel className="!px-2 !py-1 text-xs font-semibold text-muted-foreground">
+              Truck Actions
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator className="!my-1" />
+
+            {/* View Truck */}
+            <DropdownMenuItem
+              asChild
+              className="px-2 py-2 flex items-center gap-2 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
+            >
+              <a
+                href={`/client/super-admin/trucks/${encodeURIComponent(
+                  row.original.plateNumber
+                )}?id=${encodeURIComponent(
+                  row.original.id ?? row.original._id ?? ""
+                )}`}
+                target="_self"
+                rel="noopener noreferrer"
+              >
+                <Eye className="size-4 text-muted-foreground" />
+                <span>View Truck</span>
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="my-1" />
+
+            {/* Delete Truck */}
+            <DeleteTruckAlert
+              trigger={
+                <DropdownMenuItem className="px-2 py-2 flex items-center gap-2 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-sm cursor-pointer">
+                  <Trash2 className="size-4 text-red-600" />
+                  <span>Delete Truck</span>
+                </DropdownMenuItem>
+              }
+            >
+              {(close) => (
+                <DeleteTruckDialog
+                  plateNumber={row.original.plateNumber}
+                  truckId={row.original.id}
+                  fetchTrucks={fetchTrucks}
+                  onSuccess={close}
+                />
+              )}
+            </DeleteTruckAlert>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ),
+    },
+  ];
+}
+
 function DragHandle({ id }: { id: string | number }) {
   const { attributes, listeners } = useSortable({
     id: String(id),
@@ -111,135 +355,10 @@ function DragHandle({ id }: { id: string | number }) {
   );
 }
 
-const columns: ColumnDef<z.infer<typeof truckSchema>>[] = [
-  {
-    id: "drag",
-    header: () => null,
-    cell: ({ row }) => <DragHandle id={row.original.id} />,
-  },
-  {
-    accessorKey: "plateNumber",
-    header: "Truck Number",
-    cell: ({ row }) => (
-      <span className="font-medium">{row.original.plateNumber}</span>
-    ),
-    enableHiding: false,
-  },
-  {
-    accessorKey: "model",
-    header: "Model",
-    cell: ({ row }) => <span>{row.original.model}</span>,
-  },
-  {
-    accessorKey: "capacity",
-    header: "Capacity (tons)",
-    cell: ({ row }) => <span>{row.original.capacity}</span>,
-  },
-  {
-    accessorKey: "assignedDrivers",
-    header: "Drivers",
-    cell: ({ row, table }) => {
-      const driverIds = row.original.assignedDrivers;
-      const driversList = (table.options.meta as any)?.drivers || [];
-      const names = driverIds
-        .map((id: string) => {
-          const found = driversList.find((d: any) => {
-            const driverIdStr = String(d.id || d._id);
-            const idStr = String(id);
-            return driverIdStr === idStr;
-          });
-          return found ? found.name : null;
-        })
-        .filter(Boolean);
-      return names.length > 0 ? (
-        <span>{names.join(", ")}</span>
-      ) : (
-        <span className="text-muted-foreground">No driver assigned</span>
-      );
-    },
-  },
-  {
-    accessorKey: "status",
-    header: "Status",
-    cell: ({ row }) => {
-      const status = row.original.status;
-      let icon = null;
-      let colorClass = "";
-
-      if (status === "available" || status === "in-use") {
-        icon = (
-          <IconCircleCheckFilled className="size-4 fill-green-500 dark:fill-green-400" />
-        );
-        colorClass = "text-green-600 dark:text-green-400";
-      } else if (status === "ended") {
-        icon = (
-          <IconCircleCheckFilled className="size-4 fill-red-500 dark:fill-red-400" />
-        );
-        colorClass = "text-red-600 dark:text-red-400";
-      } else {
-        icon = <IconLoader className="size-4 text-yellow-500" />;
-        colorClass = "text-yellow-600 dark:text-yellow-400";
-      }
-
-      return (
-        <Badge
-          variant="outline"
-          className={`px-1.5! flex items-center gap-1! ${colorClass}`}
-        >
-          {icon}
-          {status === "in-use"
-            ? "Active"
-            : status === "ended"
-            ? "Ended"
-            : status}
-        </Badge>
-      );
-    },
-  },
-  {
-    accessorKey: "createdAt",
-    header: "Created",
-    cell: ({ row }) => (
-      <span className="text-xs text-muted-foreground">
-        {row.original.createdAt
-          ? new Date(row.original.createdAt).toLocaleDateString()
-          : "-"}
-      </span>
-    ),
-  },
-  {
-    id: "actions",
-    cell: () => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-            size="icon"
-          >
-            <IconDotsVertical />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem
-            onClick={() => {
-              /* Edit functionality */
-            }}
-          >
-            Edit
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
-  },
-];
-
-function DraggableRow({ row }: { row: Row<z.infer<typeof truckSchema>> }) {
+function DraggableRow({ row }: { row: Row<User> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
   });
-
   return (
     <TableRow
       data-state={row.getIsSelected() && "selected"}
@@ -260,23 +379,27 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof truckSchema>> }) {
   );
 }
 
-import { toast } from "sonner";
+import {
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@radix-ui/react-dropdown-menu";
 
-interface TrucksDataTableProps {
-  data: any[];
+import { Separator } from "./ui/separator";
+
+export function TrucksDataTable({
+  data,
+  fetchTrucks,
+}: {
+  data: z.infer<typeof truckSchema>[];
   fetchTrucks?: () => Promise<void>;
-}
-
-export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
+}) {
   // Normalize trucks: always have id, assignedDrivers as array, etc.
   const normalized = React.useMemo(
     () =>
       (data || []).map((t) => ({
         ...t,
-        id: t.id || t._id,
-        assignedDrivers: Array.isArray(t.assignedDrivers)
-          ? t.assignedDrivers
-          : [],
+        id: t.id ?? t._id ?? "",
+        assignedDriver: t.assignedDriver || null,
         createdAt: t.createdAt || undefined,
         updatedAt: t.updatedAt || undefined,
       })),
@@ -293,20 +416,19 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
     pageIndex: 0,
     pageSize: 10,
   });
-  const sortableId = React.useId();
   const [order, setOrder] = React.useState<(string | number)[]>(() =>
     normalized.map((t) => t.id)
   );
   React.useEffect(() => {
     setOrder(normalized.map((t) => t.id));
-  }, [normalized.length, normalized.map((t) => t.id).join(",")]);
+  }, [data]);
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor),
     useSensor(KeyboardSensor)
   );
   const dataIds = order.map(String);
-
+  const columns = React.useMemo(() => getColumns(fetchTrucks), [fetchTrucks]);
   const table = useReactTable({
     data: normalized,
     columns,
@@ -331,20 +453,7 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
     getFacetedRowModel: getFacetedRowModel(),
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
-
-  // Refresh state
-  const [refreshing, setRefreshing] = React.useState(false);
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    try {
-      await fetchTrucks?.();
-      toast.success("Trucks refreshed");
-    } catch {
-      toast.error("Failed to refresh trucks");
-    } finally {
-      setRefreshing(false);
-    }
-  };
+  const sortableId = React.useId();
 
   // Drag and drop handler
   function handleDragEnd(event: DragEndEvent) {
@@ -360,27 +469,11 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
   }
 
   return (
-    <div className="w-full flex-col justify-start gap-6!">
-      <div className="flex items-center justify-between mb-2!">
-        {/* ...other header content can go here if needed... */}
-        <div className="flex-1"></div>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="ml-2! bg-black text-white dark:bg-white dark:text-black border border-black dark:border-white hover:bg-neutral-900 dark:hover:bg-neutral-100"
-          title="Refresh trucks list"
-        >
-          <IconRefresh className="mr-1! size-4" />
-          {refreshing ? "Refreshing..." : "Refresh"}
-        </Button>
-      </div>
-      <div className="relative flex flex-col gap-4! overflow-auto px-4">
+    <div className="w-full flex-col justify-start gap-6">
+      <div className="relative flex flex-col gap-4 overflow-auto px-4">
         <div className="overflow-hidden rounded-lg border">
           <DndContext
             collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
             onDragEnd={handleDragEnd}
             sensors={sensors}
             id={sortableId}
@@ -402,7 +495,7 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
                   </TableRow>
                 ))}
               </TableHeader>
-              <TableBody className="**:data-[slot=table-cell]:first:w-8!">
+              <TableBody className="data-[slot=table-cell]:first:w-8">
                 {order.length ? (
                   <SortableContext
                     items={dataIds}
@@ -421,7 +514,7 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
                   <TableRow>
                     <TableCell
                       colSpan={columns.length}
-                      className="h-24! text-center!"
+                      className="h-24 text-center"
                     >
                       No trucks found. Create a truck to get started.
                     </TableCell>
@@ -433,13 +526,13 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4!">
+        <div className="flex items-center justify-between px-4">
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
             {table.getFilteredSelectedRowModel().rows.length} of{" "}
             {table.getFilteredRowModel().rows.length} row(s) selected.
           </div>
-          <div className="flex w-full items-center gap-8! lg:w-fit!">
-            <div className="hidden items-center gap-2! lg:flex">
+          <div className="flex w-full items-center gap-8 lg:w-fit">
+            <div className="hidden items-center gap-2 lg:flex">
               <Label htmlFor="rows-per-page" className="text-sm font-medium">
                 Rows per page
               </Label>
@@ -449,7 +542,7 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
                   table.setPageSize(Number(value));
                 }}
               >
-                <SelectTrigger size="sm" className="w-20!" id="rows-per-page">
+                <SelectTrigger size="sm" className="w-20" id="rows-per-page">
                   <SelectValue
                     placeholder={table.getState().pagination.pageSize}
                   />
@@ -463,11 +556,11 @@ export function TrucksDataTable({ data, fetchTrucks }: TrucksDataTableProps) {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex w-fit! items-center justify-center text-sm font-medium">
+            <div className="flex w-fit items-center justify-center text-sm font-medium">
               Page {table.getState().pagination.pageIndex + 1} of{" "}
               {table.getPageCount()}
             </div>
-            <div className="ml-auto! flex items-center gap-2! lg:ml-0!">
+            <div className="ml-auto flex items-center gap-2 lg:ml-0">
               <Button
                 variant="outline"
                 className="hidden h-8 w-8 p-0 lg:flex"

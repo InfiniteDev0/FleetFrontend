@@ -11,15 +11,24 @@ import {
 } from "@/components/ui/select";
 import { IconFilter, IconPlus, IconRefresh } from "@tabler/icons-react";
 import {
-  Sheet,
-  SheetClose,
-  SheetContent,
-  SheetDescription,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+
+// Ensure dialog content is scrollable and has high z-index
+const dialogContentProps = {
+  style: {
+    maxHeight: "90vh",
+    overflowY: "auto",
+    zIndex: 9999,
+  },
+};
 import { Label } from "@/components/ui/label";
 import { useSuperAdmin } from "../context/SuperAdminContext";
 import { TrucksDataTable } from "@/components/truck-datatable";
@@ -35,21 +44,50 @@ const Trucks = () => {
     loading,
     currentUser,
     handleCreateTruck,
+    handleAssignDriverToTruck,
     fetchTrucks,
+    getAllTrucks,
+    trucksError,
   } = useSuperAdmin();
 
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
 
   const handleCreateTruckWithFeedback = async (e) => {
     e.preventDefault();
     setCreateLoading(true);
     try {
-      await handleCreateTruck(e);
+      // Create the truck and get the created truck object
+      const createdTruck = await handleCreateTruck(e);
+      if (!createdTruck) throw new Error("Truck creation failed");
       toast.success("Truck created successfully");
-      setSheetOpen(false);
+
+      // Assign driver if selected
+      if (form.assignedDriverId && createdTruck._id) {
+        try {
+          await handleAssignDriverToTruck(
+            createdTruck._id,
+            form.assignedDriverId
+          );
+          toast.success("Driver assigned to truck");
+        } catch (err) {
+          toast.error(err?.message || "Failed to assign driver");
+        }
+      }
+
+      // Reset form fields after creation
+      setForm((f) => ({
+        ...f,
+        plateNumber: "",
+        model: "",
+        capacity: "",
+        status: "",
+        assignedDriverId: "",
+      }));
+
+      setDialogOpen(false);
     } catch (err) {
       toast.error(err?.message || "Failed to create truck");
     } finally {
@@ -60,10 +98,10 @@ const Trucks = () => {
   const handleRefresh = async () => {
     setCreateLoading(true);
     try {
-      await fetchTrucks();
+      await getAllTrucks();
       toast.success("Trucks refreshed");
-    } catch {
-      toast.error("Failed to refresh trucks");
+    } catch (err) {
+      toast.error(trucksError || err?.message || "Failed to refresh trucks");
     } finally {
       setCreateLoading(false);
     }
@@ -136,30 +174,32 @@ const Trucks = () => {
             {createLoading ? "Refreshing..." : "Refresh"}
           </Button>
 
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
               <Button
                 variant="default"
-                className="flex items-center !gap-2"
+                className="flex items-center gap-2"
                 disabled={!canCreate}
               >
                 <IconPlus className="size-4" />
                 Add Truck
               </Button>
-            </SheetTrigger>
-            <SheetContent>
-              <SheetHeader>
-                <SheetTitle>Add Truck</SheetTitle>
-                <SheetDescription>
+            </DialogTrigger>
+
+            <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Add Truck</DialogTitle>
+                <DialogDescription>
                   Fill in the details to create a new truck.
-                </SheetDescription>
-              </SheetHeader>
+                </DialogDescription>
+              </DialogHeader>
 
               <form
                 onSubmit={handleCreateTruckWithFeedback}
-                className="grid !gap-6 !mt-6"
+                className="grid gap-6 mt-6"
               >
-                <div className="grid !gap-2">
+                {/* Plate Number */}
+                <div className="grid gap-2">
                   <Label htmlFor="truck-plate">Plate Number</Label>
                   <Input
                     id="truck-plate"
@@ -172,7 +212,8 @@ const Trucks = () => {
                   />
                 </div>
 
-                <div className="grid !gap-2">
+                {/* Model */}
+                <div className="grid gap-2">
                   <Label htmlFor="truck-model">Model</Label>
                   <Input
                     id="truck-model"
@@ -185,7 +226,8 @@ const Trucks = () => {
                   />
                 </div>
 
-                <div className="grid !gap-2">
+                {/* Capacity */}
+                <div className="grid gap-2">
                   <Label htmlFor="truck-capacity">Capacity (tons)</Label>
                   <Input
                     id="truck-capacity"
@@ -199,48 +241,65 @@ const Trucks = () => {
                   />
                 </div>
 
-                <div className="grid !gap-2">
-                  <Label htmlFor="truck-status">Status</Label>
-                  <Select
-                    value={form.status}
-                    onValueChange={(val) =>
-                      setForm((f) => ({ ...f, status: val }))
+                {/* Driver Name */}
+                <div className="grid gap-2">
+                  <Label htmlFor="driver-name">Driver Name</Label>
+                  <Input
+                    id="driver-name"
+                    value={form.driverName}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, driverName: e.target.value }))
                     }
-                  >
-                    <SelectTrigger id="truck-status" className="w-full">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="available">Available</SelectItem>
-                      <SelectItem value="in-use">In Use</SelectItem>
-                      <SelectItem value="maintenance">Maintenance</SelectItem>
-                    </SelectContent>
-                  </Select>
+                    placeholder="John Doe"
+                  />
                 </div>
 
+                {/* Phone Number */}
+                <div className="grid gap-2">
+                  <Label htmlFor="driver-phone">Phone Number</Label>
+                  <Input
+                    id="driver-phone"
+                    type="tel"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    value={form.phoneNumber}
+                    onChange={(e) => {
+                      // sanitize: keep digits only
+                      const digits = String(e.target.value || "").replace(
+                        /\D/g,
+                        ""
+                      );
+                      setForm((f) => ({ ...f, phoneNumber: digits }));
+                    }}
+                    placeholder="254712345678"
+                  />
+                </div>
                 {error && <div className="text-red-600 text-sm">{error}</div>}
 
-                <SheetFooter className="!mt-2">
+                <DialogFooter className="mt-2">
                   <Button type="submit" disabled={!canCreate || createLoading}>
                     {createLoading ? "Creating..." : "Create Truck"}
                   </Button>
-                  <SheetClose asChild>
+                  <DialogClose asChild>
                     <Button type="button" variant="outline">
                       Cancel
                     </Button>
-                  </SheetClose>
-                </SheetFooter>
+                  </DialogClose>
+                </DialogFooter>
               </form>
-            </SheetContent>
-          </Sheet>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
       {/* Trucks list */}
       <div>
         {loading ? (
-          <div className=" text-center text-muted-foreground">
-            Loading trucks...
+          <div className="flex flex-col items-center gap-2">
+            <div className="loader"></div>
+            <span className="text-muted-foreground !mt-20 text-sm">
+              Loading trucks
+            </span>
           </div>
         ) : (
           <TrucksDataTable

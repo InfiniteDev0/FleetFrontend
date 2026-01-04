@@ -21,9 +21,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-import { useSuperAdmin } from "../context/SuperAdminContext";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
+import { useSuperAdmin } from "../context/SuperAdminContext";
 
 const UsersDataTable = dynamic(
   () => import("@/components/user-datatable").then((mod) => mod.UsersDataTable),
@@ -38,7 +38,6 @@ const Users = () => {
     allowedRoles,
     canCreate,
     filteredUsers,
-    // users,
     loading,
     currentUser,
     createUser,
@@ -76,33 +75,35 @@ const Users = () => {
   }, [filteredUsers, search, roleFilter]);
 
   return (
-    <div className="py-6! flex flex-col gap-5 px-4!">
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6!">
+    <div className="!py-6 flex flex-col gap-5 !px-4">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="text-xl font-semibold">Users Management Page</h2>
           <p className="text-sm text-muted-foreground">
             Manage and monitor all users.
           </p>
           {currentUser ? (
-            <p className="text-xs text-muted-foreground mt-1!">
+            <p className="text-xs text-muted-foreground mt-1">
               Signed in as {currentUser.name} ({currentUser.role})
             </p>
           ) : (
-            <p className="text-xs text-muted-foreground mt-1!">Not signed in</p>
+            <p className="text-xs text-muted-foreground mt-1">Not signed in</p>
           )}
         </div>
 
+        {/* Search + Filter + Add */}
         <div className="flex flex-col md:flex-row items-center gap-4">
           <Input
             placeholder="Search by name, email, or role..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-62.5 p-2!"
+            className="w-64"
           />
 
           <Select value={roleFilter} onValueChange={setRoleFilter}>
-            <SelectTrigger className="w-40 p-2!">
-              <IconFilter className="mr-2! size-4 text-muted-foreground" />
+            <SelectTrigger className="w-40">
+              <IconFilter className="mr-2 size-4 text-muted-foreground" />
               <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
@@ -113,19 +114,19 @@ const Users = () => {
             </SelectContent>
           </Select>
 
+          {/* Add User Sheet */}
           <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
             <SheetTrigger asChild>
               <Button
                 variant="default"
-                className="flex items-center gap-2 p-2!"
-                disabled={false}
-                title={"Add User"}
+                className="flex items-center gap-2 p-2"
+                title="Add User"
               >
                 <IconPlus className="size-4" />
                 Add User
               </Button>
             </SheetTrigger>
-            <SheetContent>
+            <SheetContent className="overflow-y-auto max-h-screen">
               <SheetHeader>
                 <SheetTitle>Add User</SheetTitle>
                 <SheetDescription>
@@ -134,8 +135,9 @@ const Users = () => {
                 </SheetDescription>
               </SheetHeader>
 
-              <form onSubmit={handleCreateUser} className="grid gap-6 mt-6!">
-                <div className="grid gap-2 p-0!">
+              <form onSubmit={handleCreateUser} className="grid gap-6 mt-6">
+                {/* Name */}
+                <div className="grid gap-2">
                   <Label htmlFor="user-name">Name</Label>
                   <Input
                     id="user-name"
@@ -148,7 +150,8 @@ const Users = () => {
                   />
                 </div>
 
-                <div className="grid gap-2 p-0!">
+                {/* Email */}
+                <div className="grid gap-2">
                   <Label htmlFor="user-email">Email</Label>
                   <Input
                     id="user-email"
@@ -162,7 +165,23 @@ const Users = () => {
                   />
                 </div>
 
-                <div className="grid gap-2 p-0!">
+                {/* Password */}
+                <div className="grid gap-2">
+                  <Label htmlFor="user-password">Password</Label>
+                  <Input
+                    id="user-password"
+                    type="password"
+                    value={form.password}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, password: e.target.value }))
+                    }
+                    placeholder="Enter password"
+                    required
+                  />
+                </div>
+
+                {/* Role */}
+                <div className="grid gap-2">
                   <Label htmlFor="user-role">Role</Label>
                   <Select
                     value={form.role}
@@ -183,7 +202,8 @@ const Users = () => {
                   </Select>
                 </div>
 
-                <div className="grid gap-2 p-0!">
+                {/* Status */}
+                <div className="grid gap-2">
                   <Label htmlFor="user-active">Status</Label>
                   <Select
                     value={form.isActive}
@@ -201,11 +221,13 @@ const Users = () => {
                   </Select>
                 </div>
 
+                {/* Error message */}
                 {usersError && (
                   <div className="text-red-600 text-sm">{usersError}</div>
                 )}
 
-                <SheetFooter className="mt-2!">
+                {/* Footer */}
+                <SheetFooter className="mt-2">
                   <Button type="submit" disabled={!canCreate || createLoading}>
                     {createLoading ? "Creating..." : "Create User"}
                   </Button>
@@ -221,7 +243,8 @@ const Users = () => {
         </div>
       </div>
 
-      <div className="flex flex-col !px-2 gap-4">
+      {/* Table */}
+      <div className="flex flex-col px-2 gap-4">
         {loading ? (
           <div className="text-center text-muted-foreground">
             Loading Users...

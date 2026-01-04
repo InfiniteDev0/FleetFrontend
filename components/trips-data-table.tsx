@@ -36,9 +36,23 @@ import {
   IconDotsVertical,
   IconGripVertical,
   IconLoader,
+  IconEye,
+  IconTrash,
 } from "@tabler/icons-react";
-import * as React from "react";
-import { useMemo } from "react";
+import React from "react";
+import { toast } from "sonner";
+import { DeleteTruckAlert } from "@/components/alertdialog";
+import {
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
+import { useSuperAdmin } from "@/app/client/super-admin/context/SuperAdminContext";
+import { z } from "zod";
 import {
   useReactTable,
   getCoreRowModel,
@@ -54,7 +68,7 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table";
-import { z } from "zod";
+
 import {
   closestCenter,
   DndContext,
@@ -77,33 +91,40 @@ import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { useTripsForDate } from "@/app/hooks/useFleetData";
 
-export const schema = z.object({
-  id: z.number(),
-  plateNumber: z.string(),
-  model: z.string(),
-  capacity: z.number(),
-  status: z.enum(["available", "in-use", "maintenance", "ended"]),
-  assignedDrivers: z.array(z.string()),
+export const tripSchema = z.object({
+  id: z.string().optional(), // frontend convenience, maps to _id
+  _id: z.string().optional(), // backend id field
+  truckId: z.string(), // ObjectId reference to Truck
+  product: z.enum(["AGO", "PMS", "JET A-1"]),
+  cargoType: z.string().optional(),
+  productType: z.string().optional(),
+  route: z.object({
+    origin: z.string(),
+    destination: z.string(),
+  }),
+  transport: z.number(), // money earned
+  rateValue: z.number().optional(),
+  status: z.enum(["scheduled", "in-progress", "completed"]),
+  startTime: z.string(), // ISO date string
+  endTime: z.string().nullable().optional(),
+
+  // Metadata
   createdBy: z.string(),
-  updatedBy: z.string(),
+  updatedBy: z.string().optional(),
+
+  // Optional analytics/derived fields
   trips: z.number().optional(),
-  route: z.string().optional(),
-  cityFrom: z.string().optional(),
-  cityTo: z.string().optional(),
   todayTrips: z.number().optional(),
   miles: z.number().optional(),
-  destinationMonth: z.string().optional(),
-  destinationYear: z.string().optional(),
-  tripDate: z.string().optional(),
   mileageRemaining: z.number().optional(),
   mileageCovered: z.number().optional(),
   tripValue: z.number().optional(),
 });
 
 // Create a separate component for the drag handle
-function DragHandle({ id }: { id: number }) {
+function DragHandle({ id }: { id: string | number }) {
   const { attributes, listeners } = useSortable({
-    id,
+    id: String(id),
   });
 
   return (
@@ -120,102 +141,169 @@ function DragHandle({ id }: { id: number }) {
   );
 }
 
-const columns: ColumnDef<z.infer<typeof schema>>[] = [
+const columns: ColumnDef<z.infer<typeof tripSchema>>[] = [
   {
     id: "drag",
     header: () => null,
-    cell: ({ row }) => <DragHandle id={row.original.id} />,
+    cell: ({ row }) => (
+      <DragHandle id={String(row.original.id ?? row.original._id ?? "")} />
+    ),
   },
   {
-    accessorKey: "plateNumber",
-    header: "Truck Number",
-    cell: ({ row }) => (
-      <span className="font-medium">{row.original.plateNumber}</span>
-    ),
+    accessorKey: "truckId",
+    header: "Truck",
+    cell: ({ row, table }) => {
+      const trucksList = (table.options.meta as any)?.trucks || [];
+      // Trip API may return truckId as an object or an id string
+      const truckRaw: any = (row.original as any).truckId;
+      const truckObj =
+        truckRaw && typeof truckRaw === "object" ? truckRaw : null;
+      const truckIdStr = truckObj?._id || (row.original.truckId as any);
+      let t = truckObj;
+      if (!t && truckIdStr) {
+        t = trucksList.find(
+          (x: any) => String(x.id || x._id) === String(truckIdStr)
+        );
+      }
+      return t ? (
+        <span className="font-medium">{t.plateNumber}</span>
+      ) : (
+        <span className="text-muted-foreground">
+          {String(truckIdStr || "-")}
+        </span>
+      );
+    },
     enableHiding: false,
   },
   {
-    accessorKey: "cityFrom",
-    header: "From",
-    cell: ({ row }) => (
-      <span className="font-medium text-sm text-cyan-500">
-        {row.original.cityFrom || "-"}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "cityTo",
-    header: "To",
-    cell: ({ row }) => (
-      <span className="font-medium text-sm text-red-500">
-        {row.original.cityTo || "-"}
-      </span>
-    ),
-  },
-  {
-    accessorKey: "assignedDrivers",
-    header: "Operator",
+    id: "driverContact",
+    header: "Driver Contact",
     cell: ({ row, table }) => {
-      const driverIds = row.original.assignedDrivers;
-      const driversList = (table.options.meta as any)?.drivers || [];
-      const names = driverIds
-        .map((id) => {
-          const found = driversList.find((d: any) => {
-            const driverIdStr = String(d.id || d._id);
-            const idStr = String(id);
-            return driverIdStr === idStr || d.id === Number(id) || d._id === id;
-          });
-          return found ? found.name : null;
-        })
-        .filter(Boolean);
-      return names.length > 0 ? (
-        <span>{names.join(", ")}</span>
+      const trucksList = (table.options.meta as any)?.trucks || [];
+      const truckRaw: any = (row.original as any).truckId;
+      const truckObj =
+        truckRaw && typeof truckRaw === "object" ? truckRaw : null;
+      const truckIdStr = truckObj?._id || (row.original.truckId as any);
+
+      // Try to resolve truck from nested object or from trucksList
+      const found = truckIdStr
+        ? trucksList.find(
+            (x: any) => String(x.id || x._id) === String(truckIdStr)
+          )
+        : undefined;
+
+      // Merge nested truck object with found truck so we can get PhoneNumber from provider
+      const t = found ? { ...(truckObj || {}), ...found } : truckObj || found;
+
+      const phone =
+        t?.PhoneNumber ??
+        t?.phoneNumber ??
+        t?.driverPhone ??
+        t?.driverContact ??
+        null;
+
+      return phone ? (
+        <span>{String(phone)}</span>
       ) : (
-        <span className="text-muted-foreground">No driver assigned</span>
+        <span className="text-muted-foreground">-</span>
       );
     },
+  },
+  {
+    accessorKey: "product",
+    header: "Product",
+    cell: ({ row }) => (
+      <span>
+        {row.original.product ||
+          row.original.cargoType ||
+          row.original.productType ||
+          "-"}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "route.origin",
+    header: "Origin",
+    cell: ({ row }) => (
+      <span className="font-medium">{row.original.route?.origin || "-"}</span>
+    ),
+  },
+  {
+    accessorKey: "route.destination",
+    header: "Destination",
+    cell: ({ row }) => (
+      <span className="text-muted-foreground">
+        {row.original.route?.destination || "-"}
+      </span>
+    ),
+  },
+  {
+    accessorKey: "transport",
+    header: "Revenue",
+    cell: ({ row }) => (
+      <span>
+        $
+        {Number(
+          row.original.transport || row.original.rateValue || 0
+        ).toLocaleString()}
+      </span>
+    ),
   },
   {
     accessorKey: "status",
     header: "Status",
     cell: ({ row }) => {
       const status = row.original.status;
-      let icon = null;
       let colorClass = "";
-
-      if (status === "available" || status === "in-use") {
-        icon = (
-          <IconCircleCheckFilled className="size-4 fill-green-500 dark:fill-green-400" />
-        );
-        colorClass = "text-green-600 dark:text-green-400";
-      } else if (status === "ended") {
-        icon = (
-          <IconCircleCheckFilled className="size-4 fill-red-500 dark:fill-red-400" />
-        );
-        colorClass = "text-red-600 dark:text-red-400";
-      } else {
-        icon = <IconLoader className="size-4 text-yellow-500" />;
+      if (status === "scheduled")
         colorClass = "text-yellow-600 dark:text-yellow-400";
-      }
-
+      if (status === "in-progress")
+        colorClass = "text-green-600 dark:text-green-400";
+      if (status === "completed")
+        colorClass = "text-blue-600 dark:text-blue-400";
       return (
         <Badge
           variant="outline"
-          className={`!px-1.5 flex items-center !gap-1 ${colorClass}`}
+          className={`px-1.5 flex items-center gap-1 ${colorClass}`}
         >
-          {icon}
-          {status === "in-use"
-            ? "Active"
-            : status === "ended"
-            ? "Ended"
-            : status}
+          {status}
         </Badge>
       );
     },
   },
   {
+    id: "startDate",
+    header: "Start Date",
+    cell: ({ row }) => {
+      const s = row.original.startTime;
+      return (
+        <span className="text-xs text-muted-foreground">
+          {s ? new Date(s).toLocaleDateString() : "-"}
+        </span>
+      );
+    },
+  },
+  {
+    id: "startTimeOnly",
+    header: "Start Time",
+    cell: ({ row }) => {
+      const s = row.original.startTime;
+      return (
+        <span className="text-xs text-muted-foreground">
+          {s
+            ? new Date(s).toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "-"}
+        </span>
+      );
+    },
+  },
+
+  {
     id: "actions",
-    cell: () => (
+    cell: ({ row }) => (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -228,22 +316,44 @@ const columns: ColumnDef<z.infer<typeof schema>>[] = [
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
-          <DropdownMenuItem
-            onClick={() => {
-              /* Edit functionality */
-            }}
-          >
-            Edit
+          <DropdownMenuItem asChild>
+            <a
+              href={`/client/super-admin/trips/${encodeURIComponent(
+                String(row.original.id ?? (row.original._id || ""))
+              )}?id=${encodeURIComponent(
+                String(row.original.id ?? (row.original._id || ""))
+              )}`}
+            >
+              <IconEye className="mr-2 size-4 text-muted-foreground" />
+              View Trip
+            </a>
           </DropdownMenuItem>
+
+          <DeleteTruckAlert
+            trigger={
+              <DropdownMenuItem className="px-2 py-2 flex items-center gap-2 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-sm cursor-pointer">
+                <IconTrash className="size-4 text-red-600" />
+                <span>Delete Trip</span>
+              </DropdownMenuItem>
+            }
+          >
+            {(close: () => void) => (
+              <DeleteTripDialog
+                refNumber={String(row.original.id ?? (row.original._id || ""))}
+                tripId={String(row.original.id ?? (row.original._id || ""))}
+                onSuccess={close}
+              />
+            )}
+          </DeleteTruckAlert>
         </DropdownMenuContent>
       </DropdownMenu>
     ),
   },
 ];
 
-function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
+function DraggableRow({ row }: { row: Row<z.infer<typeof tripSchema>> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
-    id: row.original.id,
+    id: String(row.original.id ?? row.original._id ?? ""),
   });
 
   return (
@@ -266,29 +376,118 @@ function DraggableRow({ row }: { row: Row<z.infer<typeof schema>> }) {
   );
 }
 
+function DeleteTripDialog({
+  refNumber,
+  tripId,
+  onSuccess,
+}: {
+  refNumber: string;
+  tripId: string;
+  onSuccess?: () => void;
+}) {
+  const [input, setInput] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const { deleteTrip, fetchTrips } = useSuperAdmin();
+
+  const handleDelete = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const res = await deleteTrip(tripId);
+      if (!res?.success) {
+        const msg = res?.message || "Failed to delete trip";
+        toast.error(msg);
+        throw new Error(msg);
+      }
+      // refresh trips list
+      if (fetchTrips) await fetchTrips();
+      toast.success(`Trip '${refNumber}' deleted successfully`);
+      if (onSuccess) onSuccess();
+    } catch (e) {
+      const errorMsg =
+        e &&
+        typeof e === "object" &&
+        "message" in e &&
+        typeof (e as any).message === "string"
+          ? (e as any).message
+          : "Failed to delete trip";
+      setError(String(errorMsg));
+      toast.error(String(errorMsg));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>Delete Trip</AlertDialogTitle>
+        <AlertDialogDescription>
+          <>
+            This will permanently delete the trip and related resources.
+            <br />
+            <input
+              type="text"
+              className="!mt-2 w-full border rounded !px-2 !py-1"
+              placeholder={`Type '${refNumber}' to confirm`}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={loading}
+            />
+            <br />
+            <span className="text-red-900 text-xs mt-2! block">
+              Deleting trip {refNumber} cannot be undone.
+            </span>
+            {error && (
+              <span className="text-red-600 text-xs mt-2!">{error}</span>
+            )}
+          </>
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <AlertDialogFooter>
+        <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+        <AlertDialogAction asChild>
+          <button
+            className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+            disabled={
+              input.trim().toLowerCase() !==
+                String(refNumber).trim().toLowerCase() || loading
+            }
+            onClick={async (e) => {
+              e.preventDefault();
+              await handleDelete();
+            }}
+          >
+            {loading ? "Deleting..." : "Delete Trip"}
+          </button>
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  );
+}
+
 export function DataTable({
   data: initialData,
+  meta,
 }: {
-  data?: z.infer<typeof schema>[];
+  data?: z.infer<typeof tripSchema>[];
+  meta?: { trucks?: any[]; users?: any[]; drivers?: any[] };
 }) {
-  const { trips, drivers, loading: dataLoading } = useTripsForDate();
+  const {
+    trips = [],
+    drivers: hookDrivers,
+    loading: dataLoading,
+  } = useTripsForDate();
+  const { trucks: contextTrucks } = useSuperAdmin();
+  const drivers = hookDrivers || meta?.drivers || [];
 
   // Use provided data or fetched trips
-  const [data, setData] = React.useState<z.infer<typeof schema>[]>(() => {
+  const [data, setData] = React.useState<z.infer<typeof tripSchema>[]>(() => {
     if (initialData && initialData.length) {
       return initialData;
     }
-    return trips.map((truck) => ({
-      ...truck,
-      trips: truck.trips || 0,
-      todayTrips: truck.todayTrips || 0,
-      miles: truck.miles || 0,
-      mileageRemaining: truck.mileageRemaining,
-      mileageCovered:
-        truck.mileageCovered ||
-        (truck.status === "ended" ? truck.miles : undefined),
-      tripValue: truck.tripValue,
-    })) as z.infer<typeof schema>[];
+    return trips as unknown as z.infer<typeof tripSchema>[];
   });
 
   // Update data when trips change
@@ -296,19 +495,7 @@ export function DataTable({
     if (initialData && initialData.length) {
       setData(initialData);
     } else {
-      setData(
-        trips.map((truck) => ({
-          ...truck,
-          trips: truck.trips || 0,
-          todayTrips: truck.todayTrips || 0,
-          miles: truck.miles || 0,
-          mileageRemaining: truck.mileageRemaining,
-          mileageCovered:
-            truck.mileageCovered ||
-            (truck.status === "ended" ? truck.miles : undefined),
-          tripValue: truck.tripValue,
-        })) as z.infer<typeof schema>[]
-      );
+      setData(trips as unknown as z.infer<typeof tripSchema>[]);
     }
   }, [trips, initialData]);
   const [rowSelection, setRowSelection] = React.useState({});
@@ -324,13 +511,13 @@ export function DataTable({
   });
   const sortableId = React.useId();
   const sensors = useSensors(
-    useSensor(MouseSensor, {}),
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor, {}),
     useSensor(KeyboardSensor, {})
   );
 
   const dataIds = React.useMemo<UniqueIdentifier[]>(
-    () => data?.map(({ id }) => id) || [],
+    () => data?.map(({ id, _id }) => String(id ?? _id ?? "")) || [],
     [data]
   );
 
@@ -339,6 +526,9 @@ export function DataTable({
     columns,
     meta: {
       drivers,
+      trucks: meta?.trucks || contextTrucks || [],
+      users: meta?.users || [],
+      ...(meta || {}),
     },
     state: {
       sorting,
@@ -347,7 +537,7 @@ export function DataTable({
       columnFilters,
       pagination,
     },
-    getRowId: (row) => row.id.toString(),
+    getRowId: (row) => String(row.id ?? (row as any)._id ?? ""),
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
@@ -375,59 +565,6 @@ export function DataTable({
 
   return (
     <div className="w-full flex-col justify-start !gap-6">
-      {/* Header + Actions */}
-      <div className="flex items-center justify-between !px-4 !mb-4 lg:!px-6">
-        <h1 className="text-xl font-semibold">Trips</h1>
-        <div className="flex items-center !gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm">
-                <IconLayoutColumns />
-                <span className="hidden lg:inline">Customize Columns</span>
-                <span className="lg:hidden">Columns</span>
-                <IconChevronDown />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {table
-                .getAllColumns()
-                .filter(
-                  (column) =>
-                    typeof column.accessorFn !== "undefined" &&
-                    column.getCanHide()
-                )
-                .map((column) => (
-                  <DropdownMenuCheckboxItem
-                    key={column.id}
-                    className="capitalize"
-                    checked={column.getIsVisible()}
-                    onCheckedChange={(value) =>
-                      column.toggleVisibility(!!value)
-                    }
-                  >
-                    {column.id}
-                  </DropdownMenuCheckboxItem>
-                ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              if (typeof window !== "undefined") {
-                const event = new CustomEvent("navigateToSection", {
-                  detail: "Trips",
-                });
-                window.dispatchEvent(event);
-              }
-            }}
-          >
-            <IconPlus />
-            <span className="hidden lg:inline">Add Trip</span>
-          </Button>
-        </div>
-      </div>
-
       {/* Table */}
       <div className="relative flex flex-col !gap-4 overflow-auto !px-4 lg:!px-6">
         <div className="overflow-hidden rounded-lg border">
@@ -455,7 +592,7 @@ export function DataTable({
                   </TableRow>
                 ))}
               </TableHeader>
-              <TableBody className="**:data-[slot=table-cell]:first:w-8">
+              <TableBody className="data-[slot=table-cell]:first:w-8">
                 {table.getRowModel().rows?.length ? (
                   <SortableContext
                     items={dataIds}
