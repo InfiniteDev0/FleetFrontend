@@ -244,9 +244,10 @@ export const SuperAdminProvider = ({ children }) => {
       if (!token) throw new Error("Missing token. Please re-login.");
 
       // Build payload exactly as your schema expects
-      // Normalize phone: remove non-digit characters and convert to Number
+      // Normalize phone: remove + and convert to Number
       const rawPhone = String(form.phoneNumber || "")
-        .replace(/\D/g, "")
+        .replace(/\+/g, "") // remove + sign
+        .replace(/\D/g, "") // remove any remaining non-digits
         .trim();
       const phoneNumberValue = rawPhone !== "" ? Number(rawPhone) : null;
 
@@ -507,6 +508,7 @@ export const SuperAdminProvider = ({ children }) => {
   const handleCreateTrip = async (e) => {
     e.preventDefault();
     setTripsError(null);
+    setLoading(true);
 
     // Validate required fields
     if (
@@ -518,6 +520,7 @@ export const SuperAdminProvider = ({ children }) => {
       !form.startTime
     ) {
       setTripsError("All fields are required.");
+      setLoading(false);
       return null;
     }
 
@@ -574,6 +577,8 @@ export const SuperAdminProvider = ({ children }) => {
     } catch (e) {
       setTripsError(e.message || "Failed to create trip");
       return null;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -658,8 +663,7 @@ export const SuperAdminProvider = ({ children }) => {
       const data = await res.json();
       if (!res.ok || !data.success)
         throw new Error(data.message || "Failed to fetch expenses");
-      setExpenses(Array.isArray(data.data) ? data.data : []);
-      return data.data;
+      return Array.isArray(data.data) ? data.data : [];
     } catch (e) {
       setExpensesError(e.message || "Failed to fetch expenses");
       return [];
@@ -689,7 +693,6 @@ export const SuperAdminProvider = ({ children }) => {
       const data = await res.json();
       if (!res.ok || !data.success)
         throw new Error(data.message || "Failed to add expense");
-      await fetchExpensesByTrip(tripId);
       return { success: true, message: data.message, data: data.data };
     } catch (e) {
       setExpensesError(e.message || "Failed to add expense");

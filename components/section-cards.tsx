@@ -74,7 +74,7 @@ export function SectionCards() {
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 !px-4 lg:!px-6 @xl/main:grid-cols-3 @5xl/main:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 !px-4 lg:px-6 xl:grid-cols-2 5xl:grid-cols-4 items-stretch *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs">
       {/* Total Trucks */}
       <Card className="shadow-none">
         <CardHeader>

@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useMemo } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,33 +13,34 @@ import {
 import { IconFilter, IconPlus, IconRefresh } from "@tabler/icons-react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { useSuperAdmin } from "../context/SuperAdminContext";
-import { DataTable } from "@/components/trips-data-table";
-import TripCreateForm from "./forms/CreateTripForm";
 import { toast } from "sonner";
 
-// Mock fallback for local/demo view
-const mockTrips = [
+const DataTable = dynamic(
+  () =>
+    import("@/components/trips-data-table").then((mod) => ({
+      default: mod.DataTable,
+    })),
   {
-    id: "TRIP-001",
-    truck: "TRK-001",
-    driver: "Carlos Rivera",
-    route: "Nairobi → Mombasa",
-    start: "2025-12-30 06:30",
-    end: "2025-12-30 14:00",
-    status: "on_trip",
-    revenue: 1200,
-  },
-  {
-    id: "TRIP-002",
-    truck: "TRK-002",
-    driver: "Jane Kim",
-    route: "Nairobi → Kisumu",
-    start: "2025-12-30 07:00",
-    end: "2025-12-30 15:00",
-    status: "completed",
-    revenue: 950,
-  },
-];
+    loading: () => (
+      <div className="flex flex-col items-center gap-2">
+        <div className="loader" />
+        <span className="text-muted-foreground mt-4 text-sm">
+          Loading trips table...
+        </span>
+      </div>
+    ),
+    ssr: false,
+  }
+);
+
+const TripCreateForm = dynamic(() => import("./forms/CreateTripForm"), {
+  loading: () => (
+    <div className="flex items-center justify-center p-8">
+      <div className="loader"></div>
+    </div>
+  ),
+  ssr: false,
+});
 
 export default function Trips() {
   const {
@@ -65,34 +67,8 @@ export default function Trips() {
     }
   };
 
-  const sourceTrips =
-    trips && trips.length
-      ? trips
-      : mockTrips.map((trip) => ({
-          _id: trip.id,
-          truckId: trip.truck,
-          driverId: trip.driver,
-          route: {
-            origin: trip.route.split("→")[0]?.trim() || "",
-            destination: trip.route.split("→")[1]?.trim() || "",
-          },
-          startTime: new Date(
-            `2025-12-30T${trip.start.split(" ")[1] || "06:00"}`
-          ).toISOString(),
-          endTime: trip.end
-            ? new Date(
-                `2025-12-30T${trip.end.split(" ")[1] || "14:00"}`
-              ).toISOString()
-            : undefined,
-          status:
-            trip.status === "on_trip"
-              ? "in-progress"
-              : trip.status === "completed"
-              ? "completed"
-              : "scheduled",
-          transport: trip.revenue,
-          createdBy: "",
-        }));
+  // Use provider trips directly (no demo/mock fallback)
+  const sourceTrips = trips || [];
 
   const filteredTrips = useMemo(() => {
     const s = String(search || "")
@@ -136,19 +112,6 @@ export default function Trips() {
             className="w-[220px]"
           />
 
-          <Select value={status} onValueChange={setStatus}>
-            <SelectTrigger className="w-[160px]">
-              <IconFilter className="!mr-2 size-4 text-muted-foreground" />
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="in-progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
-            </SelectContent>
-          </Select>
-
           <Button
             variant="outline"
             size="sm"
@@ -172,7 +135,7 @@ export default function Trips() {
             </DialogTrigger>
 
             <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
-              <TripCreateForm />
+              <TripCreateForm onSuccess={() => setDialogOpen(false)} />
             </DialogContent>
           </Dialog>
         </div>

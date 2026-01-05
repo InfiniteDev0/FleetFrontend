@@ -19,29 +19,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { useSuperAdmin } from "../../context/SuperAdminContext";
 import { Calendar24 } from "../DatePicker";
+import { toast } from "sonner";
 
-export default function TripCreateForm() {
+export default function TripCreateForm({ onSuccess }) {
   const { trucks, form, setForm, handleCreateTrip, tripsError, loading } =
     useSuperAdmin();
+
+  const availableTrucks = (trucks || []).filter(
+    (t) => t.status === "available"
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Build payload from form state
-    const tripPayload = {
-      truckId: form.truckId,
-      product: form.product,
-      route: {
-        origin: form.routeOrigin,
-        destination: form.routeDestination,
-      },
-      transport: Number(form.transport),
-      status: form.tripStatus || "scheduled",
-      startTime: form.startTime,
-      endTime: form.endTime || null,
-    };
+    // use provider handler that builds payload from form state
+    const result = await handleCreateTrip(e);
 
-    await handleCreateTrip(e, tripPayload);
+    if (result) {
+      toast.success("Trip created");
+      if (onSuccess) onSuccess();
+    }
   };
 
   return (
@@ -63,11 +60,17 @@ export default function TripCreateForm() {
                 <SelectValue placeholder="Select truck" />
               </SelectTrigger>
               <SelectContent>
-                {trucks.map((t) => (
-                  <SelectItem key={t._id} value={t._id}>
-                    {t.plateNumber} ({t.model})
+                {availableTrucks.length ? (
+                  availableTrucks.map((t) => (
+                    <SelectItem key={t._id} value={t._id}>
+                      {t.plateNumber} ({t.model})
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="" disabled>
+                    No available trucks
                   </SelectItem>
-                ))}
+                )}
               </SelectContent>
             </Select>
           </div>

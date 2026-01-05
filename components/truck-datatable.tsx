@@ -297,7 +297,7 @@ function getColumns(fetchTrucks?: () => Promise<void>) {
               asChild
               className="px-2 py-2 flex items-center gap-2 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
             >
-              <a
+              <Link
                 href={`/client/super-admin/trucks/${encodeURIComponent(
                   row.original.plateNumber
                 )}?id=${encodeURIComponent(
@@ -308,7 +308,7 @@ function getColumns(fetchTrucks?: () => Promise<void>) {
               >
                 <Eye className="size-4 text-muted-foreground" />
                 <span>View Truck</span>
-              </a>
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator className="my-1" />
 
@@ -385,6 +385,7 @@ import {
 } from "@radix-ui/react-dropdown-menu";
 
 import { Separator } from "./ui/separator";
+import Link from "next/link";
 
 export function TrucksDataTable({
   data,

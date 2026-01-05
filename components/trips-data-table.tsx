@@ -38,6 +38,8 @@ import {
   IconLoader,
   IconEye,
   IconTrash,
+  IconAlertTriangle,
+  IconQuestionMark,
 } from "@tabler/icons-react";
 import React from "react";
 import { toast } from "sonner";
@@ -90,6 +92,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { useTripsForDate } from "@/app/hooks/useFleetData";
+import Link from "next/link";
 
 export const tripSchema = z.object({
   id: z.string().optional(), // frontend convenience, maps to _id
@@ -168,9 +171,7 @@ const columns: ColumnDef<z.infer<typeof tripSchema>>[] = [
       return t ? (
         <span className="font-medium">{t.plateNumber}</span>
       ) : (
-        <span className="text-muted-foreground">
-          {String(truckIdStr || "-")}
-        </span>
+        <span className="text-muted-foreground">Unassigned</span>
       );
     },
     enableHiding: false,
@@ -180,30 +181,74 @@ const columns: ColumnDef<z.infer<typeof tripSchema>>[] = [
     header: "Driver Contact",
     cell: ({ row, table }) => {
       const trucksList = (table.options.meta as any)?.trucks || [];
+      const usersList = (table.options.meta as any)?.users || [];
+
       const truckRaw: any = (row.original as any).truckId;
       const truckObj =
         truckRaw && typeof truckRaw === "object" ? truckRaw : null;
       const truckIdStr = truckObj?._id || (row.original.truckId as any);
 
       // Try to resolve truck from nested object or from trucksList
-      const found = truckIdStr
+      const foundTruck = truckIdStr
         ? trucksList.find(
             (x: any) => String(x.id || x._id) === String(truckIdStr)
           )
         : undefined;
 
       // Merge nested truck object with found truck so we can get PhoneNumber from provider
-      const t = found ? { ...(truckObj || {}), ...found } : truckObj || found;
+      const truck = foundTruck
+        ? { ...(truckObj || {}), ...foundTruck }
+        : truckObj || foundTruck;
 
-      const phone =
-        t?.PhoneNumber ??
-        t?.phoneNumber ??
-        t?.driverPhone ??
-        t?.driverContact ??
+      const phoneFromTruck =
+        truck?.PhoneNumber ??
+        truck?.phoneNumber ??
+        truck?.driverPhone ??
+        truck?.driverContact ??
         null;
 
+      // Fallback: check driverId / driver (could be nested object or id) against users list
+      const driverRaw: any =
+        (row.original as any).driverId ?? (row.original as any).driver;
+      let phoneFromUser: string | null = null;
+      if (driverRaw) {
+        const driverObj = typeof driverRaw === "object" ? driverRaw : null;
+        const driverIdStr = driverObj?._id || driverRaw;
+        const foundUser = driverIdStr
+          ? usersList.find(
+              (u: any) => String(u.id || u._id) === String(driverIdStr)
+            )
+          : undefined;
+        const user = foundUser
+          ? { ...(driverObj || {}), ...foundUser }
+          : driverObj || foundUser;
+        phoneFromUser =
+          user?.phoneNumber ??
+          user?.PhoneNumber ??
+          user?.mobile ??
+          user?.contact ??
+          null;
+      }
+
+      // Last-resort fallback: check createdBy (may contain contact info)
+      const createdByRaw: any = (row.original as any).createdBy;
+      let phoneFromCreator: string | null = null;
+      if (createdByRaw) {
+        const creatorObj =
+          typeof createdByRaw === "object" ? createdByRaw : null;
+        phoneFromCreator =
+          creatorObj?.phoneNumber ??
+          creatorObj?.PhoneNumber ??
+          creatorObj?.mobile ??
+          null;
+      }
+
+      const phone = phoneFromTruck ?? phoneFromUser ?? phoneFromCreator;
+
       return phone ? (
-        <span>{String(phone)}</span>
+        <a className="text-primary underline" href={`tel:${String(phone)}`}>
+          {String(phone)}
+        </a>
       ) : (
         <span className="text-muted-foreground">-</span>
       );
@@ -254,19 +299,42 @@ const columns: ColumnDef<z.infer<typeof tripSchema>>[] = [
     header: "Status",
     cell: ({ row }) => {
       const status = row.original.status;
+      let icon: React.ReactNode = null;
       let colorClass = "";
-      if (status === "scheduled")
+
+      if (status === "scheduled") {
+        icon = (
+          <IconAlertTriangle className="size-4 text-yellow-500 dark:text-yellow-400" />
+        );
         colorClass = "text-yellow-600 dark:text-yellow-400";
-      if (status === "in-progress")
+      } else if (status === "in-progress") {
+        icon = (
+          <IconLoader className="size-4 animate-spin text-green-500 dark:text-green-400" />
+        );
         colorClass = "text-green-600 dark:text-green-400";
-      if (status === "completed")
+      } else if (status === "completed") {
+        icon = (
+          <IconCircleCheckFilled className="size-4 fill-blue-500 dark:fill-blue-400" />
+        );
         colorClass = "text-blue-600 dark:text-blue-400";
+      } else {
+        icon = <IconQuestionMark className="size-4 text-gray-400" />;
+        colorClass = "text-gray-500 dark:text-gray-400";
+      }
+
       return (
         <Badge
           variant="outline"
           className={`px-1.5 flex items-center gap-1 ${colorClass}`}
         >
-          {status}
+          {icon}
+          {status === "in-progress"
+            ? "In Progress"
+            : status === "scheduled"
+            ? "Scheduled"
+            : status === "completed"
+            ? "Completed"
+            : status}
         </Badge>
       );
     },
@@ -315,9 +383,12 @@ const columns: ColumnDef<z.infer<typeof tripSchema>>[] = [
             <span className="sr-only">Open menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-40">
+        <DropdownMenuContent
+          className="!p-2 !m-1 min-w-[190px] rounded-md shadow-md bg-popover text-popover-foreground"
+          align="end"
+        >
           <DropdownMenuItem asChild>
-            <a
+            <Link
               href={`/client/super-admin/trips/${encodeURIComponent(
                 String(row.original.id ?? (row.original._id || ""))
               )}?id=${encodeURIComponent(
@@ -326,7 +397,7 @@ const columns: ColumnDef<z.infer<typeof tripSchema>>[] = [
             >
               <IconEye className="mr-2 size-4 text-muted-foreground" />
               View Trip
-            </a>
+            </Link>
           </DropdownMenuItem>
 
           <DeleteTruckAlert
@@ -474,30 +545,24 @@ export function DataTable({
   data?: z.infer<typeof tripSchema>[];
   meta?: { trucks?: any[]; users?: any[]; drivers?: any[] };
 }) {
-  const {
-    trips = [],
-    drivers: hookDrivers,
-    loading: dataLoading,
-  } = useTripsForDate();
-  const { trucks: contextTrucks } = useSuperAdmin();
-  const drivers = hookDrivers || meta?.drivers || [];
+  // Prefer provider trips when initial data is not passed
+  const { trips: providerTrips = [] } = useSuperAdmin();
+  const drivers = meta?.drivers || [];
 
-  // Use provided data or fetched trips
+  // Use provided data or provider trips (no demo fallback)
   const [data, setData] = React.useState<z.infer<typeof tripSchema>[]>(() => {
-    if (initialData && initialData.length) {
-      return initialData;
-    }
-    return trips as unknown as z.infer<typeof tripSchema>[];
+    if (initialData && initialData.length) return initialData;
+    return providerTrips as unknown as z.infer<typeof tripSchema>[];
   });
 
-  // Update data when trips change
+  // Update data when provider trips or initialData change
   React.useEffect(() => {
     if (initialData && initialData.length) {
       setData(initialData);
     } else {
-      setData(trips as unknown as z.infer<typeof tripSchema>[]);
+      setData(providerTrips as unknown as z.infer<typeof tripSchema>[]);
     }
-  }, [trips, initialData]);
+  }, [providerTrips, initialData]);
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -526,7 +591,7 @@ export function DataTable({
     columns,
     meta: {
       drivers,
-      trucks: meta?.trucks || contextTrucks || [],
+      trucks: meta?.trucks || [],
       users: meta?.users || [],
       ...(meta || {}),
     },
@@ -564,9 +629,9 @@ export function DataTable({
   }
 
   return (
-    <div className="w-full flex-col justify-start !gap-6">
+    <div className="w-full flex-col justify-start gap-6!">
       {/* Table */}
-      <div className="relative flex flex-col !gap-4 overflow-auto !px-4 lg:!px-6">
+      <div className="relative flex flex-col gap-4! overflow-auto px-2!">
         <div className="overflow-hidden rounded-lg border">
           <DndContext
             collisionDetection={closestCenter}
@@ -592,7 +657,7 @@ export function DataTable({
                   </TableRow>
                 ))}
               </TableHeader>
-              <TableBody className="data-[slot=table-cell]:first:w-8">
+              <TableBody className="**:data-[slot=table-cell]:first:w-8!">
                 {table.getRowModel().rows?.length ? (
                   <SortableContext
                     items={dataIds}

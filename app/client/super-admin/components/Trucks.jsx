@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -31,8 +32,25 @@ const dialogContentProps = {
 };
 import { Label } from "@/components/ui/label";
 import { useSuperAdmin } from "../context/SuperAdminContext";
-import { TrucksDataTable } from "@/components/truck-datatable";
 import { toast } from "sonner";
+
+const TrucksDataTable = dynamic(
+  () =>
+    import("@/components/truck-datatable").then((mod) => ({
+      default: mod.TrucksDataTable,
+    })),
+  {
+    loading: () => (
+      <div className="flex flex-col items-center gap-2">
+        <div className="loader mx-auto"></div>
+        <span className="text-muted-foreground mt-4 text-sm">
+          Loading trucks table...
+        </span>
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 const Trucks = () => {
   const {
@@ -260,19 +278,33 @@ const Trucks = () => {
                   <Input
                     id="driver-phone"
                     type="tel"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
                     value={form.phoneNumber}
                     onChange={(e) => {
-                      // sanitize: keep digits only
-                      const digits = String(e.target.value || "").replace(
-                        /\D/g,
-                        ""
-                      );
-                      setForm((f) => ({ ...f, phoneNumber: digits }));
+                      let cleaned = e.target.value
+                        .replace(/\s+/g, "")
+                        .replace(/[^0-9+]/g, "");
+
+                      // If starts with 0, replace with +254
+                      if (cleaned.startsWith("0")) {
+                        cleaned = "+254" + cleaned.slice(1);
+                      }
+
+                      // If doesn't start with +254 but has digits, prepend +254
+                      if (
+                        cleaned &&
+                        !cleaned.startsWith("+254") &&
+                        !cleaned.startsWith("+")
+                      ) {
+                        cleaned = "+254" + cleaned;
+                      }
+
+                      setForm((f) => ({ ...f, phoneNumber: cleaned }));
                     }}
-                    placeholder="254712345678"
+                    placeholder="+254712345678 or 0712345678"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Example: 0796058971 → +254796058971
+                  </p>
                 </div>
                 {error && <div className="text-red-600 text-sm">{error}</div>}
 
@@ -296,7 +328,7 @@ const Trucks = () => {
       <div>
         {loading ? (
           <div className="flex flex-col items-center gap-2">
-            <div className="loader"></div>
+            <div className="loader mx-auto"></div>
             <span className="text-muted-foreground !mt-20 text-sm">
               Loading trucks
             </span>
