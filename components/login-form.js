@@ -12,7 +12,7 @@ export function LoginForm() {
 
   // Use semantic Tailwind classes instead of hard-coded colors
   const inputClass =
-    "w-full rounded-md border border-input !px-3 !py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition bg-background text-foreground";
+    "w-full rounded-md border-2 border-input !px-3 !py-5 text-md focus:outline-none focus:ring-2 focus:ring-primary transition bg-background dark:placeholder:text-gray-200";
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -21,16 +21,18 @@ export function LoginForm() {
   return (
     <div>
       <form
-        className="w-full max-w-sm mx-auto py-8 flex flex-col gap-5 items-center justify-center"
+        className="w-full max-w-sm mx-auto  flex flex-col gap-5 items-center justify-center"
         onSubmit={handleLogin}
       >
-        {/* Heading */}
-        <h2 className="text-2xl font-bold text-foreground text-center my-2">
-          Welcome back!
-        </h2>
-        <p className="text-muted-foreground text-sm text-center max-w-xs">
-          Enter your credentials to access your dashboard.
-        </p>
+        <div>
+          {/* Heading */}
+          <h2 className="text-2xl  text-foreground text-center">
+            Welcome back!
+          </h2>
+          <p className="text-md md:text-sm text-center max-w-sm">
+            Enter your credentials to access your dashboard.
+          </p>
+        </div>
 
         {/* Email */}
         <Input
@@ -79,7 +81,7 @@ export function LoginForm() {
         </Button>
 
         {/* Terms */}
-        <span className="text-xs font-medium tracking-wide text-muted-foreground text-center mt-2 leading-relaxed">
+        <span className="text-sm font-medium tracking-wide text-muted-foreground text-center mt-2 leading-relaxed">
           By continuing you are logging in at an authenticated users only
           dashboard.
         </span>

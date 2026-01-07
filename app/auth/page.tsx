@@ -14,14 +14,8 @@ export default function LoginPage() {
           }}
         />
         <div className="flex justify-center gap-2 md:justify-start relative z-10">
-          <Link href="" className="flex items-center gap-2 font-medium">
-            <div className="flex size-6 items-center justify-center rounded-md gap-0">
-              <img
-                src="https://kuwhirtafuvipkb0.public.blob.vercel-storage.com/Green_Gradient_Minimalist_Simple_Instagram_Profile_Picture-removebg-preview.png"
-                alt=""
-              />
-            </div>
-            Gam Oil Limited trading.
+          <Link href="" className="flex items-center text-lg  gap-2 font-medium">
+            Gam Oil Limited Trading.
           </Link>
         </div>
         <div className="flex flex-1 items-center justify-center relative z-10">

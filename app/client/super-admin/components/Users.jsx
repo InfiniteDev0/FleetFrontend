@@ -83,13 +83,6 @@ const Users = () => {
           <p className="text-sm text-muted-foreground">
             Manage and monitor all users.
           </p>
-          {currentUser ? (
-            <p className="text-xs text-muted-foreground mt-1!">
-              Signed in as {currentUser.name} ({currentUser.role})
-            </p>
-          ) : (
-            <p className="text-xs text-muted-foreground mt-1!">Not signed in</p>
-          )}
         </div>
 
         <div className="flex flex-col md:flex-row items-center gap-4">
@@ -97,7 +90,7 @@ const Users = () => {
             placeholder="Search by name, email, or role..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-62.5 p-2!"
+            className="w-[350px] p-2!"
           />
 
           <Select value={roleFilter} onValueChange={setRoleFilter}>

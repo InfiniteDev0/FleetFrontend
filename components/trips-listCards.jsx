@@ -3,6 +3,11 @@ import { Card } from "@/components/ui/card";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 import {
   IconAlertTriangle,
@@ -107,7 +112,7 @@ export function DeleteTripDialog({ refNumber, tripId, onSuccess }) {
             <br />
             <input
               type="text"
-              className="!mt-2 w-full border rounded !px-2 !py-1"
+              className="mt-2! w-full border rounded px-2! py-1!"
               placeholder={`Type '${refNumber}' to confirm`}
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -148,7 +153,6 @@ export function DeleteTripDialog({ refNumber, tripId, onSuccess }) {
 // Props: trips, trucks, onDeleteTrip (setDeleteDialogTripId), deleteDialogTripId, setDeleteDialogTripId
 const TripsListCards = ({
   trips = [],
-  trucks = [],
   deleteDialogTripId,
   setDeleteDialogTripId,
 }) => {
@@ -160,22 +164,19 @@ const TripsListCards = ({
         </div>
       ) : (
         trips.map((trip) => {
-          const truck = trucks.find(
-            (t) => String(t.id ?? t._id) === String(trip.truckId)
-          );
           const start = trip.startTime ? new Date(trip.startTime) : null;
           const end = trip.endTime ? new Date(trip.endTime) : null;
           const tripId = String(trip.id ?? trip._id ?? "");
           return (
             <Card
               key={tripId}
-              className="w-full flex flex-row items-stretch justify-between !py- !px-3 gap-2"
+              className="w-full flex flex-row items-stretch justify-between py-3! px-3! gap-2"
             >
               {/* Left: SVG + route info */}
               <div className="flex flex-col justify-between flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                   {/* SVG route icon vertical */}
-                  <div className="flex flex-col items-center justify-center !pr-2">
+                  <div className="flex flex-col items-center justify-center pr-2!">
                     <svg
                       width="12"
                       height="100%"
@@ -225,11 +226,11 @@ const TripsListCards = ({
                   </div>
                   {/* Route info */}
                   <div className="flex flex-col flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-base truncate">
+                    <div className="flex flex-col">
+                      <span className="text-base truncate">
                         {trip.route?.origin || "-"}
                       </span>
-                      <span className="text-xs text-muted-foreground !ml-2 truncate">
+                      <span className="text-xs text-muted-foreground  truncate">
                         {start
                           ? `${start.toLocaleDateString()} ${start.toLocaleTimeString(
                               [],
@@ -238,11 +239,11 @@ const TripsListCards = ({
                           : "-"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-2 !mt-8">
-                      <span className="font-semibold text-base truncate">
+                    <div className="flex flex-col  mt-8!">
+                      <span className=" text-base truncate">
                         {trip.route?.destination || "-"}
                       </span>
-                      <span className="text-xs text-muted-foreground !ml-2 truncate">
+                      <span className="text-xs text-muted-foreground  truncate">
                         {end
                           ? `${end.toLocaleDateString()} ${end.toLocaleTimeString(
                               [],
@@ -260,60 +261,69 @@ const TripsListCards = ({
                 <StatusBadge status={trip.status} />
                 {/* Actions: view, delete, complete (if not completed) */}
                 <div className="flex flex-row gap-2 mt-auto">
-                  {/* View button */}
-                  <Link
-                    href={`/client/super-admin/trips/${encodeURIComponent(
-                      tripId
-                    )}?id=${encodeURIComponent(tripId)}`}
-                    passHref
-                  >
-                    <Button size="icon" variant="ghost" title="View Trip">
-                      <span className="sr-only">View</span>
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
+                  {/* View button with Tooltip */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Link
+                        href={`/client/super-admin/trips/${encodeURIComponent(
+                          tripId
+                        )}?id=${encodeURIComponent(tripId)}`}
+                        passHref
                       >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                        />
-                      </svg>
-                    </Button>
-                  </Link>
-                  {/* Delete button with dialog */}
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    title="Delete Trip"
-                    onClick={() => setDeleteDialogTripId(tripId)}
-                  >
-                    <span className="sr-only">Delete</span>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-5 w-5"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
-                      />
-                    </svg>
-                  </Button>
+                        <Button size="icon" variant="ghost">
+                          <span className="sr-only">View</span>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
+                          </svg>
+                        </Button>
+                      </Link>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">View Trip</TooltipContent>
+                  </Tooltip>
+                  {/* Delete button with Tooltip and dialog */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={() => setDeleteDialogTripId(tripId)}
+                      >
+                        <span className="sr-only">Delete</span>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-5 w-5"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
+                          />
+                        </svg>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Delete Trip</TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
             </Card>

@@ -18,7 +18,7 @@ import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 // import Link from "next/link";
 // import { ... } from "@/components/ui/alert-dialog";
-import { StatusBadge, DeleteTripDialog } from "@/components/trips-listCards";
+import { DeleteTripDialog } from "@/components/trips-listCards";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -27,14 +27,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import {
-  IconAlertTriangle,
-  IconCircleCheckFilled,
-  IconLoader,
-  IconPlus,
-  IconQuestionMark,
-  IconRefresh,
-} from "@tabler/icons-react";
+import { IconPlus, IconRefresh } from "@tabler/icons-react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { useSuperAdmin } from "../context/SuperAdminContext";
 import { toast } from "sonner";
@@ -88,12 +81,12 @@ export default function Trips() {
     fetchTrips,
     loading,
   } = useSuperAdmin();
-  const [status] = useState("all");
+  const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   // Date filter: 'all', 'today', 'week', 'month', 'year'
-  const [dateFilter, setDateFilter] = useState("today");
+  const [dateFilter, setDateFilter] = useState("week");
   // Single dialog state for delete, stores trip id or null
   const [deleteDialogTripId, setDeleteDialogTripId] = useState(null);
 
@@ -259,7 +252,7 @@ export default function Trips() {
           </Button>
         </div>
         {/* Third line: date filter, always right-aligned, default to today */}
-        <div className="flex justify-end mt-2">
+        <div className="flex flex-row gap-2 justify-end mt-2">
           <Select value={dateFilter} onValueChange={setDateFilter}>
             <SelectTrigger size="sm" className="min-w-35">
               <SelectValue placeholder="Date Filter" />
@@ -270,6 +263,17 @@ export default function Trips() {
               <SelectItem value="month">This Month</SelectItem>
               <SelectItem value="year">This Year</SelectItem>
               <SelectItem value="all">All Dates</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={status} onValueChange={setStatus}>
+            <SelectTrigger size="sm" className="min-w-35">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Status</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="in-progress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
             </SelectContent>
           </Select>
         </div>

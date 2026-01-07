@@ -546,7 +546,8 @@ export function DataTable({
   meta?: { trucks?: any[]; users?: any[]; drivers?: any[] };
 }) {
   // Always reflect latest provider trips unless initialData is provided and non-empty
-  const { trips: providerTrips = [], trucks: contextTrucks = [] } = useSuperAdmin();
+  const { trips: providerTrips = [], trucks: contextTrucks = [] } =
+    useSuperAdmin();
   const drivers = meta?.drivers || [];
 
   // If initialData is provided and non-empty, use it; otherwise, always use providerTrips
