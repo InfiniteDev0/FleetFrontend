@@ -3,6 +3,7 @@
 import React from "react";
 import { DataTable } from "@/components/trips-data-table";
 import { SectionCards } from "@/components/section-cards";
+import { useSuperAdmin } from "../context/SuperAdminContext";
 
 import { TrendingUp } from "lucide-react";
 import {
@@ -32,6 +33,8 @@ import {
 import data from "../data.json";
 
 const Dashboard = () => {
+  const { trucks } = useSuperAdmin();
+
   // --- Monthly Generation Data ---
   const revenueData = [
     { month: "Jun", revenue: 210000 },
@@ -49,15 +52,11 @@ const Dashboard = () => {
     },
   };
 
-  // --- Repairs by Truck Data ---
-  const repairsData = [
-    { truck: "TRK-001", cost: 950 },
-    { truck: "TRK-002", cost: 400 },
-    { truck: "TRK-003", cost: 700 },
-    { truck: "TRK-004", cost: 800 },
-    { truck: "TRK-005", cost: 250 },
-    { truck: "TRK-006", cost: 3500 },
-  ];
+  // --- Repairs by Truck Data (using real trucks) ---
+  const repairsData = trucks.slice(0, 6).map((truck) => ({
+    truck: truck.plateNumber || "N/A",
+    cost: Math.floor(Math.random() * 3000) + 200, // Random cost for demo
+  }));
 
   const repairsConfig = {
     cost: {
@@ -67,7 +66,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex flex-1 flex-col !px-5">
+    <div className="flex flex-1 flex-col">
       <div className="flex flex-1 flex-col gap-2">
         <div className="flex flex-col gap-4 !py-4 md:gap-6 md:!py-6">
           {/* Section cards */}
@@ -77,7 +76,8 @@ const Dashboard = () => {
           {/* <DataTable data={data.trucks} onNavigateToTrips={() => {}} /> */}
 
           {/* Charts Section */}
-          <div className="flex flex-wrap gap-6 !mt-6">
+
+          <div className="flex flex-wrap gap-6 !mt-6 !px-4">
             {/* Monthly Generation */}
             <Card className="flex-1 min-w-[350px] max-w-[600px]">
               <CardHeader>
@@ -91,7 +91,7 @@ const Dashboard = () => {
                   <AreaChart
                     accessibilityLayer
                     data={revenueData}
-                    margin={{ left: -20, right: 12 }}
+                    margin={{ left: -20, right: 12, bottom: 20 }}
                   >
                     <CartesianGrid vertical={false} />
                     <XAxis
@@ -99,6 +99,9 @@ const Dashboard = () => {
                       tickLine={false}
                       axisLine={false}
                       tickMargin={8}
+                      angle={-90}
+                      textAnchor="end"
+                      height={60}
                     />
                     <YAxis
                       tickLine={false}
@@ -145,21 +148,26 @@ const Dashboard = () => {
               </CardHeader>
               <CardContent>
                 <ChartContainer config={repairsConfig}>
-                  <BarChart accessibilityLayer data={repairsData}>
+                  <BarChart
+                    accessibilityLayer
+                    data={repairsData}
+                    margin={{ bottom: 40 }}
+                  >
                     <CartesianGrid vertical={false} />
                     <XAxis
                       dataKey="truck"
                       tickLine={false}
                       axisLine={false}
                       tickMargin={8}
+                      angle={-90}
+                      textAnchor="end"
+                      height={60}
                     />
                     <YAxis
                       tickLine={false}
                       axisLine={false}
                       tickMargin={8}
-                      tickFormatter={(value) =>
-                        `$${(value / 100).toFixed(0)}00`
-                      }
+                      tickFormatter={(value) => value}
                     />
                     <ChartTooltip
                       cursor={false}

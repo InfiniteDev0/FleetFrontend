@@ -12,7 +12,7 @@ export function LoginForm() {
 
   // Use semantic Tailwind classes instead of hard-coded colors
   const inputClass =
-    "w-full rounded-md border border-input px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition bg-background text-foreground";
+    "w-full rounded-md border border-input !px-3 !py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary transition bg-background text-foreground";
 
   const handleChange = (e) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
@@ -66,12 +66,6 @@ export function LoginForm() {
           >
             {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
           </button>
-          <Link
-            href="/auth/forget"
-            className="underline text-xs tracking-wide text-muted-foreground mt-1 self-end"
-          >
-            Forgot password?
-          </Link>
         </div>
 
         {/* Submit */}

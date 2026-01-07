@@ -111,6 +111,7 @@ const TripExpenses = ({
   transportAmount = 0,
   onTotalsChange,
   onExpensesChange,
+  hideAddExpense = false,
 }) => {
   const { fetchExpensesByTrip, addExpenseToTrip, currentUser } =
     useSuperAdmin();
@@ -177,9 +178,16 @@ const TripExpenses = ({
       return;
     }
 
+    // Calculate USD amount as Payment / rate
+    const amountUSD =
+      Number(formData.rate) !== 0
+        ? Number(formData.Payment) / Number(formData.rate)
+        : 0;
+
     const result = await addExpenseToTrip(tripId, {
       Payment: Number(formData.Payment),
       rate: Number(formData.rate),
+      amount: amountUSD,
       reason: formData.reason,
     });
 
@@ -369,7 +377,11 @@ const TripExpenses = ({
       </div>
 
       {/* Scrollable expenses table */}
-      <div className="max-h-[120px] overflow-y-auto">
+      <div
+        className={`${
+          hideAddExpense === true ? "max-h-[180px]" : "max-h-[120px]"
+        } overflow-y-auto`}
+      >
         <div className="w-full">
           <div className="overflow-hidden rounded-lg border">
             <DndContext
@@ -416,7 +428,8 @@ const TripExpenses = ({
                         colSpan={expensesColumns.length}
                         className="h-24 text-center text-muted-foreground"
                       >
-                        No expenses yet. Add your first expense below.
+                        No expenses yet.
+                        {!hideAddExpense && " Add your first expense below."}
                       </TableCell>
                     </TableRow>
                   )}
@@ -427,16 +440,18 @@ const TripExpenses = ({
         </div>
       </div>
 
-      {/* Fixed Add Expense button */}
-      <AddExpenseForm
-        dialogOpen={dialogOpen}
-        setDialogOpen={setDialogOpen}
-        formData={formData}
-        setFormData={setFormData}
-        handleAddExpense={handleAddExpense}
-        totalExpenses={totalExpenses}
-        remainingAmount={remainingAmount}
-      />
+      {/* Fixed Add Expense button, only show if not completed */}
+      {!hideAddExpense && (
+        <AddExpenseForm
+          dialogOpen={dialogOpen}
+          setDialogOpen={setDialogOpen}
+          formData={formData}
+          setFormData={setFormData}
+          handleAddExpense={handleAddExpense}
+          totalExpenses={totalExpenses}
+          remainingAmount={remainingAmount}
+        />
+      )}
     </>
   );
 };

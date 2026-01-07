@@ -51,14 +51,14 @@ export default function Layout({ children }) {
       <BreadcrumbList>
         <BreadcrumbItem>
           {mainPage === "dashboard" && !subPage ? (
-            <BreadcrumbPage className="text-black dark:text-white font-semibold flex items-center gap-1">
+            <BreadcrumbPage className="text-black text-lg dark:text-white  flex items-center gap-2">
               {React.createElement(Icon, { className: "size-5" })}
               <span>Dashboard</span>
             </BreadcrumbPage>
           ) : (
             <BreadcrumbLink asChild>
               <Link href="/client/super-admin">
-                <span className="flex items-center gap-1 ">
+                  <span className="text-black text-sm dark:text-white  flex items-center gap-2">
                   {React.createElement(Icon, { className: "size-5" })}
                   <span>Dashboard</span>
                 </span>
@@ -134,9 +134,9 @@ export default function Layout({ children }) {
           />
           <div className="flex flex-1">
             <AppSidebar />
-            <SidebarInset className="flex flex-col flex-1 bg-background">
+            <SidebarInset className="flex flex-col flex-1 ">
               {/* Header Row */}
-              <div className="!px-4 !py-3 flex items-center border-b border-accent w-full min-h-[56px]">
+              <div className="!px-4 !py-3 border-b bg-white dark:bg-black flex items-center w-full min-h-[56px]">
                 {headerRow}
               </div>
               {/* Main Section */}

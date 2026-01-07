@@ -3,6 +3,7 @@
 import React from "react";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
+import TripsListCards from "../../../../../components/trips-listCards";
 
 const TripPage = dynamic(() => import("./tripid"), {
   loading: () => (
@@ -20,6 +21,7 @@ const page = () => {
   return (
     <div>
       <TripPage tripId={tripId} />
+      <TripsListCards tripId={tripId} />
     </div>
   );
 };

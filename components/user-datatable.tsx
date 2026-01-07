@@ -22,9 +22,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import // Removed unused dropdown imports
-"@/components/ui/dropdown-menu";
-// Removed unused Eye, Trash2 imports
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { IconEye, IconTrash, IconDotsVertical } from "@tabler/icons-react";
 import {
   // Removed unused IconDotsVertical import
   IconCircleCheckFilled,
@@ -70,22 +74,27 @@ import { toast } from "sonner";
 import { useSuperAdmin } from "../app/client/super-admin/context/SuperAdminContext";
 import { MoreHorizontal } from "lucide-react";
 
+type DeleteUserAlertProps = {
+  userName: string;
+  userId: string | number;
+  fetchUsers?: () => Promise<void>;
+  trigger?: React.ReactNode;
+  open: boolean;
+  setOpen: (open: boolean) => void;
+};
+
 function DeleteUserAlert({
+  open,
+  setOpen,
   userName,
   userId,
   fetchUsers,
   trigger,
-}: {
-  userName: string;
-  userId: string | number;
-  fetchUsers?: () => Promise<void>;
-  trigger: React.ReactNode;
-}) {
+}: DeleteUserAlertProps) {
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
   const { handleDeleteUser } = useSuperAdmin();
-  const [open, setOpen] = React.useState(false);
 
   const handleDelete = async () => {
     setError("");
@@ -123,7 +132,7 @@ function DeleteUserAlert({
               <br />
               <input
                 type="text"
-                className="!mt-2 w-full border rounded !px-2 !py-1"
+                className="mt-2 w-full border rounded px-2 py-1"
                 placeholder={`Type '${userName}' to confirm`}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -222,26 +231,7 @@ const userColumns: ColumnDef<User>[] = [
       );
     },
   },
-  {
-    id: "actions",
-    cell: (info) => (
-      <DeleteUserAlert
-        userName={info.row.original.name}
-        userId={info.row.original.id}
-        fetchUsers={(info.table.options.meta as any)?.fetchUsers}
-        trigger={
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8 p-0 m-0 mb-2 rounded-full hover:bg-accent hover:text-accent-foreground transition"
-          >
-            <span className="sr-only">Open menu</span>
-            <MoreHorizontal className="size-4" />
-          </Button>
-        }
-      />
-    ),
-  },
+  // The actions column will be handled in the UsersDataTable component, not here
 ];
 
 function DragHandle({ id }: { id: string | number }) {

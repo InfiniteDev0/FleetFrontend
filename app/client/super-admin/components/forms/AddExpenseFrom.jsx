@@ -38,7 +38,7 @@ const AddExpenseForm = ({
 
           <form onSubmit={handleAddExpense} className="!space-y-4">
             <div>
-              <Label htmlFor="Payment">Payment (Liters)</Label>
+              <Label htmlFor="Payment">Payment</Label>
               <Input
                 id="Payment"
                 type="number"
@@ -52,7 +52,7 @@ const AddExpenseForm = ({
               />
             </div>
             <div>
-              <Label htmlFor="rate">Rate ($/Liter)</Label>
+              <Label htmlFor="rate">Exchange rate</Label>
               <Input
                 id="rate"
                 type="number"
@@ -66,15 +66,17 @@ const AddExpenseForm = ({
               />
             </div>
             <div>
-              <Label htmlFor="amount">Calculated Amount</Label>
+              <Label htmlFor="amount">Calculated Amount (USD)</Label>
               <Input
                 id="amount"
                 type="text"
                 disabled
                 value={
-                  formData.Payment && formData.rate
+                  formData.Payment &&
+                  formData.rate &&
+                  Number(formData.rate) !== 0
                     ? `$${(
-                        Number(formData.Payment) * Number(formData.rate)
+                        Number(formData.Payment) / Number(formData.rate)
                       ).toFixed(2)}`
                     : "$0.00"
                 }

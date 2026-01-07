@@ -28,7 +28,6 @@ export function ThemeToggle() {
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
-            variant="ghost"
             size="icon"
             className="rounded-full"
             onClick={() => setTheme(isDark ? "light" : "dark")}

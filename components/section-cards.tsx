@@ -17,6 +17,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useSuperAdmin } from "@/app/client/super-admin/context/SuperAdminContext";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 
 // Helper: trend color
 function getTrendColor(value: number) {
@@ -26,7 +34,31 @@ function getTrendColor(value: number) {
 }
 
 export function SectionCards() {
-  const { trucks, loading } = useSuperAdmin();
+  const { trucks, trips, loading } = useSuperAdmin();
+  const [period, setPeriod] = React.useState("today");
+
+  // Helper: get start of week/month/year
+  function startOf(period: string, date: Date) {
+    const d = new Date(date);
+    if (period === "week") {
+      const day = d.getDay();
+      d.setDate(d.getDate() - day);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    if (period === "month") {
+      d.setDate(1);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    if (period === "year") {
+      d.setMonth(0, 1);
+      d.setHours(0, 0, 0, 0);
+      return d;
+    }
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
 
   // Stats calculation
   const stats = React.useMemo(() => {
@@ -40,7 +72,6 @@ export function SectionCards() {
       (sum: number, t: Truck) => sum + (t.capacity || 0),
       0
     );
-
     const activeTrucks = trucks.filter(
       (t: Truck) => t.status === "in-use"
     ).length;
@@ -50,12 +81,46 @@ export function SectionCards() {
     const availableTrucks = trucks.filter(
       (t: Truck) => t.status === "available"
     ).length;
-    const endedTrips = trucks.filter((t: Truck) => t.status === "ended");
 
-    const todayRevenue = endedTrips.reduce(
-      (sum: number, trip: Truck) => sum + (trip.tripValue || 0),
-      0
+    // --- Revenue Calculation ---
+    // Only completed trips (status === 'completed')
+    const now = new Date();
+    let filteredTrips = (trips || []).filter(
+      (trip: any) => trip.status === "completed" && trip.endTime
     );
+    if (period === "today") {
+      filteredTrips = filteredTrips.filter((trip: any) => {
+        const end = new Date(trip.endTime);
+        return end.toDateString() === now.toDateString();
+      });
+    } else if (period === "week") {
+      const weekStart = startOf("week", now);
+      filteredTrips = filteredTrips.filter((trip: any) => {
+        const end = new Date(trip.endTime);
+        return end >= weekStart && end <= now;
+      });
+    } else if (period === "month") {
+      const monthStart = startOf("month", now);
+      filteredTrips = filteredTrips.filter((trip: any) => {
+        const end = new Date(trip.endTime);
+        return end >= monthStart && end <= now;
+      });
+    } else if (period === "year") {
+      const yearStart = startOf("year", now);
+      filteredTrips = filteredTrips.filter((trip: any) => {
+        const end = new Date(trip.endTime);
+        return end >= yearStart && end <= now;
+      });
+    }
+    // Debug: log filtered trips for revenue
+    if (typeof window !== "undefined") {
+      // eslint-disable-next-line no-console
+      console.log("[RevenueCard] Filtered completed trips:", filteredTrips);
+    }
+    // Net profit = transport (already net profit for completed trips)
+    const netProfit = filteredTrips.reduce((sum: number, trip: any) => {
+      return sum + Number(trip.transport);
+    }, 0);
 
     return {
       totalTrucks,
@@ -63,9 +128,10 @@ export function SectionCards() {
       activeTrucks,
       maintenanceTrucks,
       availableTrucks,
-      todayRevenue,
+      netProfit,
+      filteredTrips,
     };
-  }, [trucks]);
+  }, [trucks, trips, period]);
 
   if (loading) {
     return (
@@ -74,7 +140,7 @@ export function SectionCards() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 !px-4 lg:px-6 xl:grid-cols-2 5xl:grid-cols-4 items-stretch *:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs">
+    <div className="grid grid-cols-1 gap-4 !px-4 lg:px-6 xl:grid-cols-2 5xl:grid-cols-4 items-stretch">
       {/* Total Trucks */}
       <Card className="shadow-none">
         <CardHeader>
@@ -179,30 +245,45 @@ export function SectionCards() {
 
       {/* Revenue */}
       <Card>
-        <CardHeader>
-          <CardDescription className="text-yellow-500">Revenue</CardDescription>
-          <CardTitle className="text-2xl font-semibold tabular-nums">
-            {new Intl.NumberFormat("en-US", {
-              style: "currency",
-              currency: "USD",
-            }).format(stats.todayRevenue)}
-          </CardTitle>
-          <CardAction>
-            <Badge variant="outline">
-              <IconTrendingUp
-                className={`size-4 ml-2 ${getTrendColor(stats.todayRevenue)}`}
-              />
-              Trips Value
-            </Badge>
-          </CardAction>
+        <CardHeader className="flex flex-row items-start justify-between">
+          <div>
+            <CardDescription className="text-yellow-500">
+              Revenue
+            </CardDescription>
+            {stats.filteredTrips.length === 0 ? (
+              <CardTitle className="text-2xl font-semibold tabular-nums text-muted-foreground">
+                No completed trips
+              </CardTitle>
+            ) : (
+              <CardTitle className="text-2xl font-semibold tabular-nums">
+                {new Intl.NumberFormat("en-US", {
+                  style: "currency",
+                  currency: "USD",
+                }).format(stats.netProfit)}
+              </CardTitle>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <Select value={period} onValueChange={setPeriod}>
+              <SelectTrigger size="sm" className="min-w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="today">Today</SelectItem>
+                <SelectItem value="week">This Week</SelectItem>
+                <SelectItem value="month">This Month</SelectItem>
+                <SelectItem value="year">This Year</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardFooter className="flex-col items-start !gap-1.5 text-sm">
           <div className="flex !gap-2 font-medium">
-            Completed trips revenue
+            Revenue from completed trips
             <IconRoute className="size-4 text-muted-foreground" />
           </div>
           <div className="text-muted-foreground">
-            Sum of trip values for ended trucks
+            Sum of transport for completed trips (filtered by end date)
           </div>
         </CardFooter>
       </Card>

@@ -43,11 +43,14 @@ const TripCompleteDataSubmitform = ({
 
     setLoading(true);
     try {
-      // Call the onComplete callback with trip data and end time
+      // Calculate net profit
+      const netProfit = expenseTotals?.remaining ?? trip.transport;
+      // Call the onComplete callback with trip data, end time, and updated transport
       await onComplete?.({
         ...trip,
         endTime: new Date(endTime).toISOString(),
         status: "completed",
+        transport: netProfit,
       });
       toast.success("Trip completed successfully!");
     } catch (error) {

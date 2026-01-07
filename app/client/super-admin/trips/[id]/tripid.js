@@ -669,9 +669,6 @@ export default function TripPage() {
           {/* Right side: Actions */}
           <div className="flex items-center gap-2">
             <StatusBadge status={trip.status} />
-            <Button variant="ghost" size="sm" className="px-2 py-0.5 text-xs">
-              <Printer className="w-3 h-3" /> {/* smaller icon */}
-            </Button>
           </div>
         </CardContent>
       </Card>
@@ -925,6 +922,7 @@ export default function TripPage() {
                 transportAmount={trip.transport}
                 onTotalsChange={setExpenseTotals}
                 onExpensesChange={setTripExpenses}
+                hideAddExpense={trip.status === "completed"}
               />
             </div>
           </CardContent>
@@ -1059,9 +1057,16 @@ function RelatedTripsSection({ truckId, truckPlateNumber, currentTripId }) {
       {/* Header with filter button */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         {/* Left: Title with count */}
-        <div className="text-xl underline tracking-wider">
-          {truckPlateNumber ? `${truckPlateNumber}` : "KBX"} Trips (
-          {filteredTrips.length})
+        <div className="flex items-center justify-between gap-2 text-sm tracking-wider">
+          <span className="font-medium">
+            {truckPlateNumber ? truckPlateNumber : "KBX"} Trips
+          </span>
+          <Button
+            size="sm"
+            className="rounded-full !px-3  text-xs font-semibold"
+          >
+            {filteredTrips.length}
+          </Button>
         </div>
         {/* Right: Filter button */}
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

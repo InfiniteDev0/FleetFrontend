@@ -28,7 +28,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   // Always set color-scheme and className on <html> for SSR/CSR match
   return (
-    <html lang="en" className="light" style={{ colorScheme: "light" }}>
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${outfit.variable} ${poppins.variable} antialiased font-outfit`}
       >

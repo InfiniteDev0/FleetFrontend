@@ -545,24 +545,24 @@ export function DataTable({
   data?: z.infer<typeof tripSchema>[];
   meta?: { trucks?: any[]; users?: any[]; drivers?: any[] };
 }) {
-  // Prefer provider trips when initial data is not passed
-  const { trips: providerTrips = [] } = useSuperAdmin();
+  // Always reflect latest provider trips unless initialData is provided and non-empty
+  const { trips: providerTrips = [], trucks: contextTrucks = [] } = useSuperAdmin();
   const drivers = meta?.drivers || [];
 
-  // Use provided data or provider trips (no demo fallback)
+  // If initialData is provided and non-empty, use it; otherwise, always use providerTrips
   const [data, setData] = React.useState<z.infer<typeof tripSchema>[]>(() => {
     if (initialData && initialData.length) return initialData;
     return providerTrips as unknown as z.infer<typeof tripSchema>[];
   });
 
-  // Update data when provider trips or initialData change
+  // Keep data in sync with providerTrips unless initialData is provided and non-empty
   React.useEffect(() => {
     if (initialData && initialData.length) {
       setData(initialData);
     } else {
       setData(providerTrips as unknown as z.infer<typeof tripSchema>[]);
     }
-  }, [providerTrips, initialData]);
+  }, [initialData, providerTrips]);
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -591,7 +591,7 @@ export function DataTable({
     columns,
     meta: {
       drivers,
-      trucks: meta?.trucks || [],
+      trucks: meta?.trucks || contextTrucks || [],
       users: meta?.users || [],
       ...(meta || {}),
     },

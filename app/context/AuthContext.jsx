@@ -115,6 +115,9 @@ export const AuthProvider = ({ children }) => {
           router.push(
             `/redirect?role=${encodeURIComponent(loggedInUser.role)}`
           );
+
+          // Clear form after successful login
+          setForm({ email: "", password: "" });
         })(),
         {
           loading: "Authenticating...",
