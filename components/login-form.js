@@ -9,6 +9,7 @@ import { useAuth } from "@/app/context/AuthContext";
 export function LoginForm() {
   const { form, setForm, loading, handleLogin } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
+  const [loginClicked, setLoginClicked] = useState(false);
 
   // Use semantic Tailwind classes instead of hard-coded colors
   const inputClass =
@@ -18,11 +19,22 @@ export function LoginForm() {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
+  // Wrap handleLogin to control button state
+  const handleSubmit = async (e) => {
+    if (loginClicked) return;
+    setLoginClicked(true);
+    try {
+      await handleLogin(e);
+    } finally {
+      setLoginClicked(false);
+    }
+  };
+
   return (
     <div>
       <form
         className="w-full max-w-sm mx-auto  flex flex-col gap-5 items-center justify-center"
-        onSubmit={handleLogin}
+        onSubmit={handleSubmit}
       >
         <div>
           {/* Heading */}
@@ -73,11 +85,11 @@ export function LoginForm() {
         {/* Submit */}
         <Button
           type="submit"
-          disabled={loading}
+          disabled={loading || loginClicked}
           size="sm"
           className="w-full rounded-md py-3 mt-2 transition"
         >
-          {loading ? "Loading..." : "Continue"}
+          {loading || loginClicked ? "Loading..." : "Continue"}
         </Button>
 
         {/* Terms */}

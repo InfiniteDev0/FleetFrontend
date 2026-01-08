@@ -22,23 +22,59 @@ import { Calendar24 } from "../DatePicker";
 import { toast } from "sonner";
 
 export default function TripCreateForm({ onSuccess }) {
-  const { trucks, form, setForm, handleCreateTrip, tripsError, loading } =
-    useSuperAdmin();
+  const {
+    trucks,
+    trips,
+    form,
+    setForm,
+    handleCreateTrip,
+    tripsError,
+    loading,
+  } = useSuperAdmin();
 
-  const availableTrucks = (trucks || []).filter(
-    (t) => t.status === "available"
+  // Show all trucks in selector
+  const allTrucks = trucks || [];
+
+  // Helper: check if selected truck is in-use or has in-progress trip
+  const selectedTruck = allTrucks.find(
+    (t) => String(t._id || t.id) === String(form.truckId)
   );
+  const truckHasActiveTrip = (trips || []).some((trip) => {
+    const truckRaw = trip.truckId;
+    const truckObj = truckRaw && typeof truckRaw === "object" ? truckRaw : null;
+    const tripTruckId = truckObj?._id || truckRaw;
+    return (
+      String(tripTruckId) === String(form.truckId) &&
+      trip.status === "in-progress"
+    );
+  });
+  const truckIsInUse = selectedTruck && selectedTruck.status === "in-use";
+  const forceScheduled = truckHasActiveTrip || truckIsInUse;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // use provider handler that builds payload from form state
-    const result = await handleCreateTrip(e);
-
-    if (result) {
-      toast.success("Trip created");
-      if (onSuccess) onSuccess();
-    }
+    // Always send 'scheduled' status for new trips, especially if truck is in use or has active trip
+    setForm((f) => ({ ...f, tripStatus: "scheduled" }));
+    // Wait for state update before calling handleCreateTrip
+    setTimeout(async () => {
+      const result = await handleCreateTrip(e);
+      if (result) {
+        toast.success("Trip created");
+        if (onSuccess) onSuccess();
+        // Clear form after creation
+        setForm({
+          truckId: "",
+          product: "",
+          routeOrigin: "",
+          routeDestination: "",
+          transport: "",
+          tripStatus: "scheduled",
+          startTime: null,
+          endTime: null,
+        });
+      }
+    }, 0);
   };
 
   return (
@@ -60,15 +96,22 @@ export default function TripCreateForm({ onSuccess }) {
                 <SelectValue placeholder="Select truck" />
               </SelectTrigger>
               <SelectContent>
-                {availableTrucks.length ? (
-                  availableTrucks.map((t) => (
-                    <SelectItem key={t._id} value={t._id}>
+                {allTrucks.length ? (
+                  allTrucks.map((t) => (
+                    <SelectItem key={t._id || t.id} value={t._id || t.id}>
                       {t.plateNumber} ({t.model})
+                      {t.status === "in-use"
+                        ? " [In Use]"
+                        : t.status === "maintenance"
+                        ? " [Maintenance]"
+                        : t.status === "available"
+                        ? " [Available]"
+                        : ""}
                     </SelectItem>
                   ))
                 ) : (
                   <SelectItem value="" disabled>
-                    No available trucks
+                    No trucks
                   </SelectItem>
                 )}
               </SelectContent>
@@ -135,21 +178,14 @@ export default function TripCreateForm({ onSuccess }) {
           {/* Status */}
           <div>
             <Label>Status</Label>
-            <Select
-              value={form.tripStatus}
-              onValueChange={(val) =>
-                setForm((f) => ({ ...f, tripStatus: val }))
+            <Input
+              value={
+                forceScheduled ? "scheduled" : form.tripStatus || "scheduled"
               }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="scheduled">Scheduled</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
-              </SelectContent>
-            </Select>
+              disabled
+              readOnly
+              className="bg-muted text-muted-foreground"
+            />
           </div>
 
           <Calendar24
@@ -162,10 +198,6 @@ export default function TripCreateForm({ onSuccess }) {
             }
           />
         </CardContent>
-
-        {tripsError && (
-          <div className="text-red-500 text-sm px-6 pb-2">{tripsError}</div>
-        )}
 
         <CardFooter className="flex justify-end">
           <Button type="submit" disabled={loading}>

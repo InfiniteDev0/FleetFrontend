@@ -10,7 +10,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { IconFilter, IconPlus, IconRefresh } from "@tabler/icons-react";
+import {
+  IconAlertTriangle,
+  IconCircleCheckFilled,
+  IconLoader,
+  IconPlus,
+  IconQuestionMark,
+  IconRefresh,
+} from "@tabler/icons-react";
 import {
   Dialog,
   DialogTrigger,
@@ -21,18 +28,25 @@ import {
   DialogFooter,
   DialogClose,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+} from "@/components/ui/alert-dialog";
 
-// Ensure dialog content is scrollable and has high z-index
-const dialogContentProps = {
-  style: {
-    maxHeight: "90vh",
-    overflowY: "auto",
-    zIndex: 9999,
-  },
-};
 import { Label } from "@/components/ui/label";
 import { useSuperAdmin } from "../context/SuperAdminContext";
 import { toast } from "sonner";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Eye } from "lucide-react";
+import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
+import { useState as useLocalState } from "react";
+import { DeleteTruckDialog } from "@/components/DeleteTruckDialog";
 
 const TrucksDataTable = dynamic(
   () =>
@@ -264,6 +278,7 @@ const Trucks = () => {
                       <Button type="button" variant="outline">
                         Cancel
                       </Button>
+                      const [showDelete, setShowDelete] = React.useState(false);
                     </DialogClose>
                   </DialogFooter>
                 </form>
@@ -448,7 +463,6 @@ const Trucks = () => {
         </div>
       </div>
 
-      {/* Trucks list */}
       <div>
         {loading ? (
           <div className="flex flex-col items-center gap-2">
@@ -458,13 +472,161 @@ const Trucks = () => {
             </span>
           </div>
         ) : (
-          <TrucksDataTable
-            data={filteredTrucks}
-            fetchTrucks={fetchTrucks}
-            searchable
-            paginated
-            sortable
-          />
+          <>
+            {/* Mobile: Card list */}
+            <div className="flex flex-col gap-4 md:hidden">
+              {filteredTrucks.length === 0 ? (
+                <div className="text-center text-muted-foreground py-8">
+                  No trucks found.
+                </div>
+              ) : (
+                filteredTrucks.map((truck) => {
+                  // Local state for delete dialog per truck
+                  const [showDelete, setShowDelete] = useLocalState(false);
+                  let icon = null;
+                  let colorClass = "";
+                  if (truck.status === "available") {
+                    icon = (
+                      <IconCircleCheckFilled className="size-4 fill-green-500 dark:fill-green-400" />
+                    );
+                    colorClass = "text-green-600 dark:text-green-400";
+                  } else if (truck.status === "in-use") {
+                    icon = (
+                      <IconLoader className="size-4 animate-spin text-blue-500 dark:text-blue-400" />
+                    );
+                    colorClass = "text-blue-600 dark:text-blue-400";
+                  } else if (truck.status === "maintenance") {
+                    icon = (
+                      <IconAlertTriangle className="size-4 text-yellow-500 dark:text-yellow-400" />
+                    );
+                    colorClass = "text-yellow-600 dark:text-yellow-400";
+                  } else {
+                    icon = (
+                      <IconQuestionMark className="size-4 text-gray-400" />
+                    );
+                    colorClass = "text-gray-500 dark:text-gray-400";
+                  }
+                  return (
+                    <div
+                      key={truck._id || truck.id}
+                      className="w-[400px] max-w-full h-[20vh] border rounded-md flex flex-col justify-between !p-3 bg-background shadow-sm"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex items-center gap-3 text-sm">
+                          <img
+                            src="https://png.pngtree.com/png-vector/20231023/ourmid/pngtree-3d-illustration-of-tanker-truck-png-image_10312658.png"
+                            alt="truck"
+                            className="w-15 h-12 object-contain"
+                          />
+                          <div className="flex flex-col">
+                            <span>{truck.plateNumber}</span>
+                            <span className="text-xs">
+                              {truck.model}
+                              {truck.year ? ` - ${truck.year}` : ""}
+                            </span>
+                          </div>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className={`!px-1.5 flex items-center gap-1 ${colorClass}`}
+                        >
+                          {icon}
+                          {truck.status === "in-use"
+                            ? "In Use"
+                            : truck.status === "available"
+                            ? "Available"
+                            : truck.status === "maintenance"
+                            ? "Maintenance"
+                            : truck.status}
+                        </Badge>
+                      </div>
+                      <div className="flex items-end justify-between">
+                        <div className="flex items-center justify-between !mt-2">
+                          <p className="text-sm">
+                            Driver:{" "}
+                            <span className="text-xs">
+                              {truck.driverName || "-"}
+                            </span>
+                          </p>
+                        </div>
+                        <div className="flex items-center !gap-2">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Link
+                                href={`/client/super-admin/trucks/${encodeURIComponent(
+                                  truck.plateNumber
+                                )}?id=${encodeURIComponent(
+                                  truck.id ?? truck._id ?? ""
+                                )}`}
+                                target="_self"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center justify-center rounded-md border bg-secondary text-secondary-foreground hover:bg-secondary/80 size-9"
+                                style={{ textDecoration: "none" }}
+                              >
+                                <Eye className="size-4 text-muted-foreground" />
+                                <span className="sr-only">View Truck</span>
+                              </Link>
+                            </TooltipTrigger>
+                            <TooltipContent>View</TooltipContent>
+                          </Tooltip>
+                          <AlertDialog
+                            open={showDelete}
+                            onOpenChange={setShowDelete}
+                          >
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <AlertDialogTrigger asChild>
+                                  <Button
+                                    variant="destructive"
+                                    size="icon"
+                                    onClick={() => setShowDelete(true)}
+                                  >
+                                    <svg
+                                      xmlns="http://www.w3.org/2000/svg"
+                                      className="h-5 w-5"
+                                      fill="none"
+                                      viewBox="0 0 24 24"
+                                      stroke="currentColor"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
+                                      />
+                                    </svg>
+                                  </Button>
+                                </AlertDialogTrigger>
+                              </TooltipTrigger>
+                              <TooltipContent>Delete</TooltipContent>
+                            </Tooltip>
+                            <AlertDialogContent>
+                              <DeleteTruckDialog
+                                plateNumber={truck.plateNumber}
+                                truckId={truck.id ?? truck._id}
+                                fetchTrucks={fetchTrucks}
+                                onSuccess={() => setShowDelete(false)}
+                              />
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+            {/* Desktop: DataTable */}
+            <div className="hidden md:block">
+              <TrucksDataTable
+                data={filteredTrucks}
+                fetchTrucks={fetchTrucks}
+                searchable
+                paginated
+                sortable
+              />
+            </div>
+          </>
         )}
       </div>
     </div>

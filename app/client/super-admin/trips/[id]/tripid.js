@@ -303,6 +303,7 @@ export default function TripPage() {
   });
   const [completeDialogOpen, setCompleteDialogOpen] = React.useState(false);
   const [tripExpenses, setTripExpenses] = React.useState([]);
+  const [startingTrip, setStartingTrip] = React.useState(false);
 
   useEffect(() => {
     if (!trips || trips.length === 0) {
@@ -315,7 +316,28 @@ export default function TripPage() {
     if (trips && trips.length > 0) {
       setLoading(false);
     }
-  }, [trips]);
+    // Notification for scheduled trip start time
+    if (trip && trip.status === "scheduled" && trip.startTime) {
+      const startDate = new Date(trip.startTime);
+      const now = new Date();
+      if (now >= startDate) {
+        toast.info(
+          "Scheduled trip start time reached! You can now start the trip."
+        );
+      } else {
+        // Set a timer to notify when start time is reached
+        const msUntilStart = startDate.getTime() - now.getTime();
+        if (msUntilStart > 0) {
+          const timer = setTimeout(() => {
+            toast.info(
+              "Scheduled trip start time reached! You can now start the trip."
+            );
+          }, msUntilStart);
+          return () => clearTimeout(timer);
+        }
+      }
+    }
+  }, [trips, trip]);
 
   const trip = trips.find((t) => String(t.id ?? t._id) === String(tripId));
 
@@ -342,6 +364,31 @@ export default function TripPage() {
       </div>
     );
   }
+
+  // Start Trip logic
+  const handleStartTrip = async () => {
+    setStartingTrip(true);
+    try {
+      const tripIdStr = String(trip?.id ?? trip?._id);
+      const truckIdStr = String(truck?.id ?? truck?._id);
+      // Update trip status to in-progress
+      const result = await updateTrip(tripIdStr, { status: "in-progress" });
+      if (result.success) {
+        // Update truck status to in-use
+        if (truckIdStr && handleUpdateTruck) {
+          await handleUpdateTruck(truckIdStr, { status: "in-use" });
+        }
+        toast.success("Trip started!");
+        await fetchTrips?.();
+      } else {
+        toast.error(result.message || "Failed to start trip");
+      }
+    } catch (e) {
+      toast.error("Failed to start trip");
+    } finally {
+      setStartingTrip(false);
+    }
+  };
 
   // Resolve truck - merge nested trip.truckId with provider truck record (so driver/contact from provider is used when present)
   const truckRaw = trip?.truckId;
@@ -863,6 +910,19 @@ export default function TripPage() {
                 <IconDownload className="h-4 w-4" />
                 Download Trip PDF
               </Button>
+            ) : trip.status === "scheduled" ? (
+              <Button
+                variant="default"
+                size="sm"
+                onClick={handleStartTrip}
+                disabled={startingTrip}
+                className="gap-2"
+              >
+                <IconLoader
+                  className={startingTrip ? "h-4 w-4 animate-spin" : "h-4 w-4"}
+                />
+                {startingTrip ? "Starting..." : "Start Trip"}
+              </Button>
             ) : (
               <Dialog
                 open={completeDialogOpen}
@@ -922,7 +982,7 @@ export default function TripPage() {
                 transportAmount={trip.transport}
                 onTotalsChange={setExpenseTotals}
                 onExpensesChange={setTripExpenses}
-                hideAddExpense={trip.status === "completed"}
+                hideAddExpense={trip.status !== "in-progress"}
               />
             </div>
           </CardContent>

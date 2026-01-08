@@ -295,9 +295,6 @@ const Truckpage = () => {
           {(role === "admin" || role === "super_admin") && (
             <>
               <Button size="sm" variant="outline">
-                Change Status
-              </Button>
-              <Button size="sm" variant="outline">
                 Send to Maintenance
               </Button>
             </>
