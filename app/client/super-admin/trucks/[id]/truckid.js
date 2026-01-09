@@ -812,16 +812,6 @@ const Truckpage = () => {
             Expenses & Maintenance logs go here
           </Card>
         </TabsContent>
-
-        <TabsContent value="documents">
-          <Card className="!p-4 !mb-4">Documents info goes here</Card>
-        </TabsContent>
-
-        {(role === "admin" || role === "super_admin") && (
-          <TabsContent value="activity">
-            <Card className="!p-4 !mb-4">Activity log goes here</Card>
-          </TabsContent>
-        )}
       </Tabs>
     </div>
   );

@@ -82,11 +82,6 @@ export default function TripCreateForm({ onSuccess }) {
       onSubmit={handleSubmit}
       className="w-full  rounded-md bg-background"
     >
-      {/* Header */}
-      <div className="!p-4 ">
-        <h2 className="text-lg font-semibold">Create Trip</h2>
-      </div>
-
       {/* Content */}
       <div className="grid grid-cols-1 gap-4 md:!p-4">
         {/* Truck */}

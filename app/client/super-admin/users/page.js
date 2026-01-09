@@ -126,21 +126,25 @@ const Users = () => {
           <h2 className="text-xl font-semibold flex-1">
             Users Management Page
           </h2>
-          <Button onClick={() => setSmSheetOpen(true)} title="Add User">
+          {/* Mobile: add user button right of title */}
+          <Button
+            onClick={() => setSmSheetOpen(true)}
+            title="Add User"
+            className="md:hidden"
+          >
             <IconPlus className="size-4" />
             Add User
           </Button>
-          {/* Mobile: add user button right of title */}
           <AnimatePresence>
             {sheetSmOpen && (
               <motion.div
-                className="fixed inset-0 z-50 flex justify-end bg-black/50"
+                className="fixed inset-0 z-50 flex bg-black/50 md:hidden"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
               >
                 <motion.div
-                  className="w-full max-w-md bg-background !px-4 !py-3 overflow-y-auto shadow-lg relative"
+                  className="w-full h-full bg-background !px-4 !py-3 overflow-y-auto shadow-lg relative"
                   initial={{ x: "100%" }}
                   animate={{ x: 0 }}
                   exit={{ x: "100%" }}
@@ -164,7 +168,7 @@ const Users = () => {
                     </p>
                   </div>
 
-                  {/* ✅ Full Form */}
+                  {/* Full Form */}
                   <form onSubmit={handleCreateUser} className="grid gap-6">
                     <div className="grid gap-2">
                       <Label htmlFor="user-name">Name</Label>
@@ -254,12 +258,14 @@ const Users = () => {
                       <Button
                         type="submit"
                         disabled={!canCreate || createLoading}
+                        className="flex-1"
                       >
                         {createLoading ? "Creating..." : "Create User"}
                       </Button>
                       <Button
                         type="button"
                         variant="outline"
+                        className="flex-1"
                         onClick={() => setSmSheetOpen(false)}
                       >
                         Cancel
@@ -284,7 +290,6 @@ const Users = () => {
                 </Button>
               </SheetTrigger>
               <SheetContent className="overflow-y-auto max-h-screen">
-                {/* ...existing code for SheetContent... */}
                 <SheetHeader>
                   <SheetTitle>Add User</SheetTitle>
                   <SheetDescription>
@@ -293,7 +298,6 @@ const Users = () => {
                   </SheetDescription>
                 </SheetHeader>
                 <form onSubmit={handleCreateUser} className="grid gap-6 !mt-6">
-                  {/* ...existing code for form fields... */}
                   <div className="grid gap-2 p-0!">
                     <Label htmlFor="user-name">Name</Label>
                     <Input
