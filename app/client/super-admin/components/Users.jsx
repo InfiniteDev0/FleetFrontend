@@ -106,133 +106,16 @@ const Users = () => {
             </SelectContent>
           </Select>
 
-          <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-            <SheetTrigger asChild>
-              <Button
-                variant="default"
-                className="flex items-center gap-2 p-2!"
-                disabled={false}
-                title={"Add User"}
-              >
-                <IconPlus className="size-4" />
-                Add User
-              </Button>
-            </SheetTrigger>
-
-            <SheetContent className="overflow-y-auto max-h-screen">
-              <SheetHeader>
-                <SheetTitle>Add User</SheetTitle>
-                <SheetDescription>
-                  Fill in the details to create a new user. Role options depend
-                  on your permissions.
-                </SheetDescription>
-              </SheetHeader>
-
-              <form onSubmit={handleCreateUser} className="grid gap-6 mt-6!">
-                {/* Name */}
-                <div className="grid gap-2 p-0!">
-                  <Label htmlFor="user-name">Name</Label>
-                  <Input
-                    id="user-name"
-                    value={form.name}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, name: e.target.value }))
-                    }
-                    placeholder="Full name"
-                    required
-                  />
-                </div>
-
-                {/* Email */}
-                <div className="grid gap-2 p-0!">
-                  <Label htmlFor="user-email">Email</Label>
-                  <Input
-                    id="user-email"
-                    type="email"
-                    value={form.email}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, email: e.target.value }))
-                    }
-                    placeholder="name@example.com"
-                    required
-                  />
-                </div>
-
-                {/* Password */}
-                <div className="grid gap-2 p-0!">
-                  <Label htmlFor="user-password">Password</Label>
-                  <Input
-                    id="user-password"
-                    type="password"
-                    value={form.password}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, password: e.target.value }))
-                    }
-                    placeholder="Enter password"
-                    required
-                  />
-                </div>
-
-                {/* Role */}
-                <div className="grid gap-2 p-0!">
-                  <Label htmlFor="user-role">Role</Label>
-                  <Select
-                    value={form.role}
-                    onValueChange={(val) =>
-                      setForm((f) => ({ ...f, role: val }))
-                    }
-                  >
-                    <SelectTrigger id="user-role" className="w-full">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {allowedRoles.map((r) => (
-                        <SelectItem key={r} value={r}>
-                          {r}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Status */}
-                <div className="grid gap-2 p-0!">
-                  <Label htmlFor="user-active">Status</Label>
-                  <Select
-                    value={form.isActive}
-                    onValueChange={(val) =>
-                      setForm((f) => ({ ...f, isActive: val }))
-                    }
-                  >
-                    <SelectTrigger id="user-active" className="w-full">
-                      <SelectValue placeholder="Select status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="true">Active</SelectItem>
-                      <SelectItem value="false">Inactive</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Error message */}
-                {usersError && (
-                  <div className="text-red-600 text-sm">{usersError}</div>
-                )}
-
-                {/* Footer */}
-                <SheetFooter className="mt-2!">
-                  <Button type="submit" disabled={!canCreate || createLoading}>
-                    {createLoading ? "Creating..." : "Create User"}
-                  </Button>
-                  <SheetClose asChild>
-                    <Button type="button" variant="outline">
-                      Cancel
-                    </Button>
-                  </SheetClose>
-                </SheetFooter>
-              </form>
-            </SheetContent>
-          </Sheet>
+          <Button
+            variant="default"
+            className="flex items-center gap-2 p-2!"
+            disabled={false}
+            title={"Add User"}
+          >
+            <IconPlus className="size-4" />
+            Add User
+          </Button>
+          
         </div>
       </div>
 

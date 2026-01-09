@@ -3,6 +3,8 @@ import React, { useState } from "react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react"; // optional close icon
 import {
   Select,
   SelectContent,
@@ -47,6 +49,16 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { useState as useLocalState } from "react";
 import { DeleteTruckDialog } from "@/components/DeleteTruckDialog";
+import {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const TrucksDataTable = dynamic(
   () =>
@@ -86,6 +98,9 @@ const Trucks = () => {
   const [search, setSearch] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
+  // Add missing state for mobile and desktop add truck sheets
+  const [truckSmSheetOpen, setTruckSmSheetOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const handleCreateTruckWithFeedback = async (e) => {
     e.preventDefault();
@@ -120,6 +135,8 @@ const Trucks = () => {
       }));
 
       setDialogOpen(false);
+      setTruckSmSheetOpen(false); // Close mobile sheet
+      setSheetOpen(false); // Close desktop sheet
     } catch (err) {
       toast.error(err?.message || "Failed to create truck");
     } finally {
@@ -157,254 +174,24 @@ const Trucks = () => {
   }, [trucks, status, search]);
 
   return (
-    <div className="py-6! flex flex-col gap-6! px-4! lg:px-6!">
+    <div className="!py-6 flex flex-col gap-6 !px-4 lg:!px-6">
       {/* Responsive header: mobile and desktop layouts */}
-      <div className="flex flex-col gap-2 mb-6!">
+      <div className="flex flex-col gap-2 !mb-6">
         {/* First line: title and add truck (mobile: both, desktop: title left, add truck right) */}
         <div className="flex flex-row items-center w-full pr-1!">
           <h2 className="text-xl font-semibold flex-1">Trucks Management</h2>
           {/* Mobile: add truck button right of title */}
           <div className="md:hidden flex items-center justify-end">
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="default"
-                  className="flex items-center gap-2"
-                  disabled={!canCreate}
-                  title="Add Truck"
-                >
-                  <IconPlus className="size-4" />
-                  Add Truck
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
-                {/* ...existing code for DialogContent... */}
-                <DialogHeader>
-                  <DialogTitle>Add Truck</DialogTitle>
-                  <DialogDescription>
-                    Fill in the details to create a new truck.
-                  </DialogDescription>
-                </DialogHeader>
-                <form
-                  onSubmit={handleCreateTruckWithFeedback}
-                  className="grid gap-6 mt-6"
-                >
-                  {/* ...existing code for form fields... */}
-                  <div className="grid gap-2">
-                    <Label htmlFor="truck-plate">Plate Number</Label>
-                    <Input
-                      id="truck-plate"
-                      value={form.plateNumber}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, plateNumber: e.target.value }))
-                      }
-                      placeholder="KBN 123X"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="truck-model">Model</Label>
-                    <Input
-                      id="truck-model"
-                      value={form.model}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, model: e.target.value }))
-                      }
-                      placeholder="Isuzu FSR"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="truck-capacity">Capacity (tons)</Label>
-                    <Input
-                      id="truck-capacity"
-                      type="number"
-                      value={form.capacity}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, capacity: e.target.value }))
-                      }
-                      placeholder="10"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="driver-name">Driver Name</Label>
-                    <Input
-                      id="driver-name"
-                      value={form.driverName}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, driverName: e.target.value }))
-                      }
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="driver-phone">Phone Number</Label>
-                    <Input
-                      id="driver-phone"
-                      type="tel"
-                      value={form.phoneNumber}
-                      onChange={(e) => {
-                        let cleaned = e.target.value
-                          .replace(/\s+/g, "")
-                          .replace(/[^0-9+]/g, "");
-                        if (cleaned.startsWith("0")) {
-                          cleaned = "+254" + cleaned.slice(1);
-                        }
-                        if (
-                          cleaned &&
-                          !cleaned.startsWith("+254") &&
-                          !cleaned.startsWith("+")
-                        ) {
-                          cleaned = "+254" + cleaned;
-                        }
-                        setForm((f) => ({ ...f, phoneNumber: cleaned }));
-                      }}
-                      placeholder="+254712345678 or 0712345678"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Example: 0796058971 → +254796058971
-                    </p>
-                  </div>
-                  {error && <div className="text-red-600 text-sm">{error}</div>}
-                  <DialogFooter className="mt-2">
-                    <Button
-                      type="submit"
-                      disabled={!canCreate || createLoading}
-                    >
-                      {createLoading ? "Creating..." : "Create Truck"}
-                    </Button>
-                    <DialogClose asChild>
-                      <Button type="button" variant="outline">
-                        Cancel
-                      </Button>
-                      const [showDelete, setShowDelete] = React.useState(false);
-                    </DialogClose>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
-          </div>
-          {/* Desktop: add truck button right-aligned */}
-          <div className="hidden md:flex items-center">
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button
-                  variant="default"
-                  className="items-center gap-2"
-                  disabled={!canCreate}
-                  title="Add Truck"
-                >
-                  <IconPlus className="size-4" />
-                  Add Truck
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
-                {/* ...existing code for DialogContent... */}
-                <DialogHeader>
-                  <DialogTitle>Add Truck</DialogTitle>
-                  <DialogDescription>
-                    Fill in the details to create a new truck.
-                  </DialogDescription>
-                </DialogHeader>
-                <form
-                  onSubmit={handleCreateTruckWithFeedback}
-                  className="grid gap-6 mt-6"
-                >
-                  {/* ...existing code for form fields... */}
-                  <div className="grid gap-2">
-                    <Label htmlFor="truck-plate">Plate Number</Label>
-                    <Input
-                      id="truck-plate"
-                      value={form.plateNumber}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, plateNumber: e.target.value }))
-                      }
-                      placeholder="KBN 123X"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="truck-model">Model</Label>
-                    <Input
-                      id="truck-model"
-                      value={form.model}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, model: e.target.value }))
-                      }
-                      placeholder="Isuzu FSR"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="truck-capacity">Capacity (tons)</Label>
-                    <Input
-                      id="truck-capacity"
-                      type="number"
-                      value={form.capacity}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, capacity: e.target.value }))
-                      }
-                      placeholder="10"
-                      required
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="driver-name">Driver Name</Label>
-                    <Input
-                      id="driver-name"
-                      value={form.driverName}
-                      onChange={(e) =>
-                        setForm((f) => ({ ...f, driverName: e.target.value }))
-                      }
-                      placeholder="John Doe"
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="driver-phone">Phone Number</Label>
-                    <Input
-                      id="driver-phone"
-                      type="tel"
-                      value={form.phoneNumber}
-                      onChange={(e) => {
-                        let cleaned = e.target.value
-                          .replace(/\s+/g, "")
-                          .replace(/[^0-9+]/g, "");
-                        if (cleaned.startsWith("0")) {
-                          cleaned = "+254" + cleaned.slice(1);
-                        }
-                        if (
-                          cleaned &&
-                          !cleaned.startsWith("+254") &&
-                          !cleaned.startsWith("+")
-                        ) {
-                          cleaned = "+254" + cleaned;
-                        }
-                        setForm((f) => ({ ...f, phoneNumber: cleaned }));
-                      }}
-                      placeholder="+254712345678 or 0712345678"
-                    />
-                    <p className="text-xs text-muted-foreground">
-                      Example: 0796058971 → +254796058971
-                    </p>
-                  </div>
-                  {error && <div className="text-red-600 text-sm">{error}</div>}
-                  <DialogFooter className="mt-2">
-                    <Button
-                      type="submit"
-                      disabled={!canCreate || createLoading}
-                    >
-                      {createLoading ? "Creating..." : "Create Truck"}
-                    </Button>
-                    <DialogClose asChild>
-                      <Button type="button" variant="outline">
-                        Cancel
-                      </Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </form>
-              </DialogContent>
-            </Dialog>
+            <Button
+              variant="default"
+              className="flex items-center gap-2"
+              title="Add Truck"
+              onClick={() => setTruckSmSheetOpen(true)}
+              disabled={!canCreate}
+            >
+              <IconPlus className="size-4" />
+              Add Truck
+            </Button>
           </div>
         </div>
         {/* Subtitle and current user info */}
@@ -629,6 +416,280 @@ const Trucks = () => {
           </>
         )}
       </div>
+
+      {/* Mobile Add Truck Sheet */}
+      <AnimatePresence>
+        {truckSmSheetOpen && (
+          <motion.div
+            className="fixed inset-0 z-50 flex justify-end bg-black/50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <motion.div
+              className="w-full max-w-md bg-background !px-4 !py-3 overflow-y-auto shadow-lg relative"
+              initial={{ x: "100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "100%" }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setTruckSmSheetOpen(false)}
+                className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
+                aria-label="Close"
+              >
+                <X className="size-5" />
+              </button>
+
+              {/* Header */}
+              <div className="!mb-4 !pr-8 border-b !py-2">
+                <h2 className="text-lg ">Add Truck</h2>
+                <p className="text-sm text-muted-foreground">
+                  Fill in the details to create a new truck.
+                </p>
+              </div>
+
+              {/* Form */}
+              <form
+                onSubmit={handleCreateTruckWithFeedback}
+                className="grid gap-6"
+              >
+                <div className="grid gap-2">
+                  <Label htmlFor="truck-plate">Plate Number</Label>
+                  <Input
+                    id="truck-plate"
+                    value={form.plateNumber}
+                    onChange={(e) =>
+                      setForm((f) => ({
+                        ...f,
+                        plateNumber: e.target.value,
+                      }))
+                    }
+                    placeholder="KBN 123X"
+                    required
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="truck-model">Model</Label>
+                  <Input
+                    id="truck-model"
+                    value={form.model}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, model: e.target.value }))
+                    }
+                    placeholder="Isuzu FSR"
+                    required
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="truck-capacity">Capacity (tons)</Label>
+                  <Input
+                    id="truck-capacity"
+                    type="number"
+                    value={form.capacity}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, capacity: e.target.value }))
+                    }
+                    placeholder="10"
+                    required
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="driver-name">Driver Name</Label>
+                  <Input
+                    id="driver-name"
+                    value={form.driverName}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, driverName: e.target.value }))
+                    }
+                    placeholder="John Doe"
+                  />
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="driver-phone">Phone Number</Label>
+                  <Input
+                    id="driver-phone"
+                    type="tel"
+                    value={form.phoneNumber}
+                    onChange={(e) => {
+                      let cleaned = e.target.value
+                        .replace(/\s+/g, "")
+                        .replace(/[^0-9+]/g, "");
+                      if (cleaned.startsWith("0")) {
+                        cleaned = "+254" + cleaned.slice(1);
+                      }
+                      if (
+                        cleaned &&
+                        !cleaned.startsWith("+254") &&
+                        !cleaned.startsWith("+")
+                      ) {
+                        cleaned = "+254" + cleaned;
+                      }
+                      setForm((f) => ({ ...f, phoneNumber: cleaned }));
+                    }}
+                    placeholder="+254712345678 or 0712345678"
+                  />
+                </div>
+
+                {error && <div className="text-red-600 text-sm">{error}</div>}
+
+                <div className="flex gap-2 !mt-4">
+                  <Button type="submit" disabled={!canCreate || createLoading}>
+                    {createLoading ? "Creating..." : "Create Truck"}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setTruckSmSheetOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Desktop Add Truck Sheet */}
+      <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+        <SheetTrigger asChild>
+          <Button
+            variant="default"
+            className="items-center gap-2"
+            disabled={!canCreate}
+            title="Add Truck"
+          >
+            <IconPlus className="size-4" />
+            Add Truck
+          </Button>
+        </SheetTrigger>
+
+        <SheetContent
+          side="right"
+          className="flex flex-col h-screen w-[600px] !p-0"
+        >
+          {/* Header stays fixed */}
+          <div className="!p-4 border-b">
+            <SheetHeader>
+              <SheetTitle>Add Truck</SheetTitle>
+              <SheetDescription>
+                Fill in the details to create a new truck.
+              </SheetDescription>
+            </SheetHeader>
+          </div>
+
+          {/* Scrollable form area */}
+          <div className="flex-1 overflow-y-auto !p-4">
+            <form
+              onSubmit={handleCreateTruckWithFeedback}
+              className="grid gap-6 !mt-6"
+            >
+              <div className="grid gap-2">
+                <Label htmlFor="truck-plate">Plate Number</Label>
+                <Input
+                  id="truck-plate"
+                  value={form.plateNumber}
+                  onChange={(e) =>
+                    setForm((f) => ({
+                      ...f,
+                      plateNumber: e.target.value,
+                    }))
+                  }
+                  placeholder="KBN 123X"
+                  required
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="truck-model">Model</Label>
+                <Input
+                  id="truck-model"
+                  value={form.model}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, model: e.target.value }))
+                  }
+                  placeholder="Isuzu FSR"
+                  required
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="truck-capacity">Capacity (tons)</Label>
+                <Input
+                  id="truck-capacity"
+                  type="number"
+                  value={form.capacity}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, capacity: e.target.value }))
+                  }
+                  placeholder="10"
+                  required
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="driver-name">Driver Name</Label>
+                <Input
+                  id="driver-name"
+                  value={form.driverName}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, driverName: e.target.value }))
+                  }
+                  placeholder="John Doe"
+                />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="driver-phone">Phone Number</Label>
+                <Input
+                  id="driver-phone"
+                  type="tel"
+                  value={form.phoneNumber}
+                  onChange={(e) => {
+                    let cleaned = e.target.value
+                      .replace(/\s+/g, "")
+                      .replace(/[^0-9+]/g, "");
+                    if (cleaned.startsWith("0")) {
+                      cleaned = "+254" + cleaned.slice(1);
+                    }
+                    if (
+                      cleaned &&
+                      !cleaned.startsWith("+254") &&
+                      !cleaned.startsWith("+")
+                    ) {
+                      cleaned = "+254" + cleaned;
+                    }
+                    setForm((f) => ({ ...f, phoneNumber: cleaned }));
+                  }}
+                  placeholder="+254712345678 or 0712345678"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Example: 0796058971 → +254796058971
+                </p>
+              </div>
+
+              {error && <div className="text-red-600 text-sm">{error}</div>}
+
+              <SheetFooter className="!mt-2">
+                <Button type="submit" disabled={!canCreate || createLoading}>
+                  {createLoading ? "Creating..." : "Create Truck"}
+                </Button>
+                <SheetClose asChild>
+                  <Button type="button" variant="outline">
+                    Cancel
+                  </Button>
+                </SheetClose>
+              </SheetFooter>
+            </form>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

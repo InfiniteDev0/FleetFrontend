@@ -23,14 +23,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { IconEye, IconTrash, IconDotsVertical } from "@tabler/icons-react";
-import {
-  // Removed unused IconDotsVertical import
   IconCircleCheckFilled,
   IconLoader,
   IconRefresh,
@@ -72,28 +64,23 @@ import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
 
 import { useSuperAdmin } from "../app/client/super-admin/context/SuperAdminContext";
-import { MoreHorizontal } from "lucide-react";
-
-type DeleteUserAlertProps = {
-  userName: string;
-  userId: string | number;
-  fetchUsers?: () => Promise<void>;
-  trigger?: React.ReactNode;
-  open: boolean;
-  setOpen: (open: boolean) => void;
-};
+import { DeleteIcon, MoreHorizontal } from "lucide-react";
 
 function DeleteUserAlert({
-  open,
-  setOpen,
   userName,
   userId,
   fetchUsers,
   trigger,
-}: DeleteUserAlertProps) {
+}: {
+  userName: string;
+  userId: string | number;
+  fetchUsers?: () => Promise<void>;
+  trigger: React.ReactNode;
+}) {
   const [input, setInput] = React.useState("");
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
+  const [open, setOpen] = React.useState(false);
   const { handleDeleteUser } = useSuperAdmin();
 
   const handleDelete = async () => {
@@ -132,7 +119,7 @@ function DeleteUserAlert({
               <br />
               <input
                 type="text"
-                className="mt-2 w-full border rounded px-2 py-1"
+                className="mt-2! w-full border rounded px-2! py-1!"
                 placeholder={`Type '${userName}' to confirm`}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
@@ -185,7 +172,7 @@ const userColumns: ColumnDef<User>[] = [
   {
     id: "drag",
     header: () => null,
-    cell: ({ row }) => <DragHandle id={row.original.id} />,
+    cell: ({ row }) => <DragHandle id={row.original.id ?? ""} />,
   },
   {
     accessorKey: "name",
@@ -231,7 +218,39 @@ const userColumns: ColumnDef<User>[] = [
       );
     },
   },
-  // The actions column will be handled in the UsersDataTable component, not here
+  {
+    id: "actions",
+    cell: (info) => (
+      <DeleteUserAlert
+        userName={info.row.original.name}
+        userId={info.row.original.id ?? ""}
+        fetchUsers={undefined}
+        trigger={
+          <Button
+            variant="secondary"
+            size="icon"
+            className="h-8 w-8 p-0 m-0 mb-2 cursor-pointer rounded-full  transition"
+          >
+            <span className="sr-only">Open menu</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-5 w-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
+              />
+            </svg>
+          </Button>
+        }
+      />
+    ),
+  },
 ];
 
 function DragHandle({ id }: { id: string | number }) {
@@ -252,7 +271,19 @@ function DragHandle({ id }: { id: string | number }) {
   );
 }
 
-function DraggableRow({ row }: { row: Row<any> }) {
+function DraggableRow({
+  row,
+}: {
+  row: Row<{
+    id: string | number;
+    _id?: string | number;
+    name: string;
+    email: string;
+    role: string;
+    isActive: boolean;
+    createdAt?: string;
+  }>;
+}) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: row.original.id,
   });
@@ -287,7 +318,7 @@ export function UsersDataTable({ data, fetchUsers }: UsersDataTableProps) {
     () =>
       (data || []).map((u) => ({
         ...u,
-        id: u.id || u._id,
+        id: u.id ?? u._id ?? "",
       })),
     [data]
   );
@@ -318,7 +349,7 @@ export function UsersDataTable({ data, fetchUsers }: UsersDataTableProps) {
 
   const table = useReactTable({
     data: normalized,
-    columns: userColumns as any,
+    columns: userColumns,
     meta: { fetchUsers },
     state: {
       sorting,
@@ -367,90 +398,204 @@ export function UsersDataTable({ data, fetchUsers }: UsersDataTableProps) {
   }
 
   return (
-    <div className="w-full flex-col justify-start gap-6!">
-      <div className="flex items-center justify-between mb-2!">
-        <div className="flex-1"></div>
-        <Button
-          variant="default"
-          size="sm"
-          onClick={handleRefresh}
-          disabled={refreshing}
-          className="ml-2! bg-black text-white dark:bg-white dark:text-black border border-black dark:border-white hover:bg-neutral-900 dark:hover:bg-neutral-100"
-          title="Refresh users list"
-        >
-          <IconRefresh className="mr-1! size-4" />
-          {refreshing ? "Refreshing..." : "Refresh"}
-        </Button>
-      </div>
-      <div className="relative flex flex-col gap-4! overflow-auto px-2!">
-        <div className="overflow-hidden rounded-lg border">
-          <DndContext
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
-            <Table>
-              <TableHeader className="bg-muted sticky top-0 z-10">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id} colSpan={header.colSpan}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody className="**:data-[slot=table-cell]:first:w-8!">
-                {order.length ? (
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {order.map((id) => {
-                      const row = table
-                        .getRowModel()
-                        .rows.find((r) => String(r.id) === String(id));
-                      return row ? (
-                        <DraggableRow key={row.id} row={row} />
-                      ) : null;
-                    })}
-                  </SortableContext>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={userColumns.length}
-                      className="h-24! text-center!"
+    <>
+      {/* Table for large screens */}
+      <div className="w-full flex-col justify-start gap-6 hidden lg:block">
+        <div className="relative flex flex-col gap-4 overflow-auto px-2">
+          <div className="overflow-hidden rounded-lg border">
+            <DndContext
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+              sensors={sensors}
+              id={sortableId}
+            >
+              <Table>
+                <TableHeader className="bg-muted sticky top-0 z-10">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead key={header.id} colSpan={header.colSpan}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody>
+                  {order.length ? (
+                    <SortableContext
+                      items={dataIds}
+                      strategy={verticalListSortingStrategy}
                     >
-                      No users found. Create a user to get started.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </DndContext>
-        </div>
-        {/* Pagination */}
-        <div className="flex items-center justify-between px-4!">
-          <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
-            {table.getFilteredSelectedRowModel().rows.length} of{" "}
-            {table.getFilteredRowModel().rows.length} row(s) selected.
+                      {order.map((id) => {
+                        const row = table
+                          .getRowModel()
+                          .rows.find((r) => String(r.id) === String(id));
+                        return row ? (
+                          <DraggableRow key={row.id} row={row} />
+                        ) : null;
+                      })}
+                    </SortableContext>
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={userColumns.length}
+                        className="h-24 text-center"
+                      >
+                        No users found. Create a user to get started.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </DndContext>
           </div>
-          <div className="flex w-full items-center gap-8! lg:w-fit!">
-            <div className="flex w-fit! items-center justify-center text-sm font-medium">
+          {/* Pagination */}
+          <div className="flex items-center justify-between px-4">
+            <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
+              {table.getFilteredSelectedRowModel().rows.length} of{" "}
+              {table.getFilteredRowModel().rows.length} row(s) selected.
+            </div>
+            <div className="flex w-full items-center gap-8 lg:w-fit">
+              <div className="flex w-fit items-center justify-center text-sm font-medium">
+                Page {table.getState().pagination.pageIndex + 1} of{" "}
+                {table.getPageCount()}
+              </div>
+              <div className="ml-auto flex items-center gap-2 lg:ml-0">
+                <Button
+                  variant="outline"
+                  className="hidden h-8 w-8 p-0 lg:flex"
+                  onClick={() => table.setPageIndex(0)}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  <span className="sr-only">Go to first page</span>
+                  <IconChevronsLeft />
+                </Button>
+                <Button
+                  variant="outline"
+                  className="size-8"
+                  size="icon"
+                  onClick={() => table.previousPage()}
+                  disabled={!table.getCanPreviousPage()}
+                >
+                  <span className="sr-only">Go to previous page</span>
+                  <IconChevronLeft />
+                </Button>
+                <Button
+                  variant="outline"
+                  className="size-8"
+                  size="icon"
+                  onClick={() => table.nextPage()}
+                  disabled={!table.getCanNextPage()}
+                >
+                  <span className="sr-only">Go to next page</span>
+                  <IconChevronRight />
+                </Button>
+                <Button
+                  variant="outline"
+                  className="hidden size-8 lg:flex"
+                  size="icon"
+                  onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+                  disabled={!table.getCanNextPage()}
+                >
+                  <span className="sr-only">Go to last page</span>
+                  <IconChevronsRight />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Card list for small screens */}
+      <div className="block lg:hidden w-full">
+        {/* Card-based user list */}
+        {(table.getRowModel().rows.length > 0
+          ? table.getRowModel().rows
+          : []
+        ).map((row) => {
+          const user = row.original;
+          return (
+            <div key={user._id || user.email} className="mb-2!">
+              <div className="w-full flex flex-col gap-3 px-3! py-2! rounded-lg border bg-card">
+                <div className="flex flex-row items-center justify-between">
+                  <div className="flex items-center gap-5">
+                    {/* Avatar */}
+                    <div className="bg-white/60 backdrop-blur-md border border-white/30 text-black flex items-center justify-center w-10 h-10 rounded-full shadow-md">
+                      {user.name
+                        ? user.name
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .toUpperCase()
+                        : "U"}
+                    </div>
+                    <div>
+                      <p className="text-sm">{user.name}</p>
+                      <p className="text-xs">{user.email}</p>
+                    </div>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="px-1.5! flex items-center gap-1"
+                  >
+                    <IconCircleCheckFilled className="size-4 fill-green-500 dark:fill-green-400" />
+                    {user.isActive ? "active" : "inactive"}
+                  </Badge>
+                </div>
+                <div className="flex items-center justify-between mt-2!">
+                  <p className="text-sm">
+                    role: <span className="text-xs">{user.role}</span>
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <DeleteUserAlert
+                      userName={user.name}
+                      userId={user._id ? user._id : user.id ?? ""}
+                      fetchUsers={fetchUsers}
+                      trigger={
+                        <Button variant="ghost" size="icon">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            className="h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
+                            />
+                          </svg>
+                        </Button>
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+        {/* Pagination for mobile cards */}
+        <div className="flex items-center justify-between px-4! mt-2!">
+          <div className="text-muted-foreground flex-1 text-sm">
+            {/* No row selection for mobile */}
+          </div>
+          <div className="flex w-full items-center gap-8">
+            <div className="flex w-fit items-center justify-center text-sm font-medium">
               Page {table.getState().pagination.pageIndex + 1} of{" "}
               {table.getPageCount()}
             </div>
-            <div className="ml-auto! flex items-center gap-2! lg:ml-0!">
+            <div className="ml-auto! flex items-center gap-2">
               <Button
                 variant="outline"
-                className="hidden h-8 w-8 p-0 lg:flex"
+                className="h-8 w-8 p-0"
                 onClick={() => table.setPageIndex(0)}
                 disabled={!table.getCanPreviousPage()}
               >
@@ -479,7 +624,7 @@ export function UsersDataTable({ data, fetchUsers }: UsersDataTableProps) {
               </Button>
               <Button
                 variant="outline"
-                className="hidden size-8 lg:flex"
+                className="size-8"
                 size="icon"
                 onClick={() => table.setPageIndex(table.getPageCount() - 1)}
                 disabled={!table.getCanNextPage()}
@@ -491,6 +636,6 @@ export function UsersDataTable({ data, fetchUsers }: UsersDataTableProps) {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }

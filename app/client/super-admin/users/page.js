@@ -1,5 +1,7 @@
 "use client";
 import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X } from "lucide-react"; // Optional: for a close icon
 // Responsive hook
 function useIsMobile() {
   const [isMobile, setIsMobile] = React.useState(false);
@@ -78,6 +80,7 @@ const Users = () => {
   const [roleFilter, setRoleFilter] = useState("all");
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetSmOpen, setSmSheetOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const isMobile = useIsMobile();
   const [page, setPage] = useState(0);
@@ -120,177 +123,50 @@ const Users = () => {
       <div className="flex flex-col gap-2 mb-6!">
         {/* First line: title and add user (mobile: both, desktop: title left, add user right) */}
         <div className="flex flex-row items-center w-full pr-1!">
-          <h2 className="text-xl font-semibold flex-1">Users Management</h2>
+          <h2 className="text-xl font-semibold flex-1">
+            Users Management Page
+          </h2>
+          <Button onClick={() => setSmSheetOpen(true)} title="Add User">
+            <IconPlus className="size-4" />
+            Add User
+          </Button>
           {/* Mobile: add user button right of title */}
-          <div className="md:hidden flex items-center justify-end">
-            <Button
-              variant="default"
-              className="flex items-center gap-2 !p-2"
-              title="Add User"
-              onClick={() => setSheetOpen(true)}
-            >
-              <IconPlus className="size-4" />
-              Add User
-            </Button>
-            {sheetOpen && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
-                <div className="relative w-full h-full bg-[#18181b] flex flex-col max-w-md mx-auto md:rounded-lg md:shadow-lg overflow-y-auto">
+          <AnimatePresence>
+            {sheetSmOpen && (
+              <motion.div
+                className="fixed inset-0 z-50 flex justify-end bg-black/50"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              >
+                <motion.div
+                  className="w-full max-w-md bg-background !px-4 !py-3 overflow-y-auto shadow-lg relative"
+                  initial={{ x: "100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "100%" }}
+                  transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                >
+                  {/* Close button */}
                   <button
-                    className="absolute top-4 right-4 text-white text-2xl z-10"
-                    onClick={() => setSheetOpen(false)}
+                    onClick={() => setSmSheetOpen(false)}
+                    className="absolute top-4 right-4 text-muted-foreground hover:text-foreground"
                     aria-label="Close"
                   >
-                    &times;
+                    <X className="size-5" />
                   </button>
-                  <div className="flex flex-col items-center justify-center h-full !px-6 !py-8">
-                    <h2 className="!mb-2 text-white">
-                      Create New User
-                    </h2>
-                    <form
-                      onSubmit={handleCreateUser}
-                      className="w-full flex flex-col gap-4 !mt-4"
-                    >
-                      <div className="flex flex-col gap-1">
-                        <Label htmlFor="user-name" className="text-white">
-                          First Name
-                        </Label>
-                        <Input
-                          id="user-name"
-                          value={form.name}
-                          onChange={(e) =>
-                            setForm((f) => ({ ...f, name: e.target.value }))
-                          }
-                          placeholder="Enter first name"
-                          required
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Label htmlFor="user-email" className="text-white">
-                          Email Address
-                        </Label>
-                        <Input
-                          id="user-email"
-                          type="email"
-                          value={form.email}
-                          onChange={(e) =>
-                            setForm((f) => ({ ...f, email: e.target.value }))
-                          }
-                          placeholder="Enter email address"
-                          required
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Label htmlFor="user-password" className="text-white">
-                          Password
-                        </Label>
-                        <Input
-                          id="user-password"
-                          type="password"
-                          value={form.password}
-                          onChange={(e) =>
-                            setForm((f) => ({ ...f, password: e.target.value }))
-                          }
-                          placeholder="Enter password (min. 6 characters)"
-                          required
-                        />
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Label htmlFor="user-role" className="text-white">
-                          Role
-                        </Label>
-                        <Select
-                          value={form.role}
-                          onValueChange={(val) =>
-                            setForm((f) => ({ ...f, role: val }))
-                          }
-                        >
-                          <SelectTrigger id="user-role" className="w-full">
-                            <SelectValue placeholder="Select role" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {allowedRoles.map((r) => (
-                              <SelectItem key={r} value={r}>
-                                {r}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Label htmlFor="user-active" className="text-white">
-                          Status
-                        </Label>
-                        <Select
-                          value={form.isActive}
-                          onValueChange={(val) =>
-                            setForm((f) => ({ ...f, isActive: val }))
-                          }
-                          className
-                        >
-                          <SelectTrigger id="user-active" className="w-full">
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="true">Active</SelectItem>
-                            <SelectItem value="false">Inactive</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      {usersError && (
-                        <div className="text-red-600 text-sm">{usersError}</div>
-                      )}
-                      <div className="flex gap-2 mt-2">
-                        <Button
-                          type="submit"
-                          className="flex-1"
-                          disabled={!canCreate || createLoading}
-                        >
-                          {createLoading ? "Creating..." : "Create User"}
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="flex-1"
-                          onClick={() => setSheetOpen(false)}
-                        >
-                          Cancel
-                        </Button>
-                      </div>
-                    </form>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          {/* Desktop: add user button right-aligned */}
-          {!isMobile && (
-            <div className="hidden md:flex items-center">
-              <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-                <SheetTrigger asChild>
-                  <Button
-                    variant="default"
-                    className="items-center gap-2 p-2!"
-                    title="Add User"
-                  >
-                    <IconPlus className="size-4" />
-                    Add User
-                  </Button>
-                </SheetTrigger>
-                <SheetContent className="overflow-y-auto max-h-screen">
-                  {/* ...existing code for SheetContent... */}
-                  <SheetHeader>
-                    <SheetTitle>Add User</SheetTitle>
-                    <SheetDescription>
+
+                  {/* Header */}
+                  <div className="!mb-4 !pr-8">
+                    <h2 className="text-lg font-semibold">Add User</h2>
+                    <p className="text-sm text-muted-foreground">
                       Fill in the details to create a new user. Role options
                       depend on your permissions.
-                    </SheetDescription>
-                  </SheetHeader>
-                  <form
-                    onSubmit={handleCreateUser}
-                    className="grid gap-6 mt-6!"
-                  >
-                    {/* ...existing code for form fields... */}
-                    <div className="grid gap-2 p-0!">
+                    </p>
+                  </div>
+
+                  {/* ✅ Full Form */}
+                  <form onSubmit={handleCreateUser} className="grid gap-6">
+                    <div className="grid gap-2">
                       <Label htmlFor="user-name">Name</Label>
                       <Input
                         id="user-name"
@@ -302,7 +178,8 @@ const Users = () => {
                         required
                       />
                     </div>
-                    <div className="grid gap-2 p-0!">
+
+                    <div className="grid gap-2">
                       <Label htmlFor="user-email">Email</Label>
                       <Input
                         id="user-email"
@@ -315,7 +192,8 @@ const Users = () => {
                         required
                       />
                     </div>
-                    <div className="grid gap-2 p-0!">
+
+                    <div className="grid gap-2">
                       <Label htmlFor="user-password">Password</Label>
                       <Input
                         id="user-password"
@@ -328,7 +206,8 @@ const Users = () => {
                         required
                       />
                     </div>
-                    <div className="grid gap-2 p-0!">
+
+                    <div className="grid gap-2">
                       <Label htmlFor="user-role">Role</Label>
                       <Select
                         value={form.role}
@@ -348,7 +227,8 @@ const Users = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="grid gap-2 p-0!">
+
+                    <div className="grid gap-2">
                       <Label htmlFor="user-active">Status</Label>
                       <Select
                         value={form.isActive}
@@ -365,27 +245,150 @@ const Users = () => {
                         </SelectContent>
                       </Select>
                     </div>
+
                     {usersError && (
                       <div className="text-red-600 text-sm">{usersError}</div>
                     )}
-                    <SheetFooter className="mt-2!">
+
+                    <div className="flex gap-2 mt-4">
                       <Button
                         type="submit"
                         disabled={!canCreate || createLoading}
                       >
                         {createLoading ? "Creating..." : "Create User"}
                       </Button>
-                      <SheetClose asChild>
-                        <Button type="button" variant="outline">
-                          Cancel
-                        </Button>
-                      </SheetClose>
-                    </SheetFooter>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setSmSheetOpen(false)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
                   </form>
-                </SheetContent>
-              </Sheet>
-            </div>
-          )}
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {/* Desktop: add user button right-aligned */}
+          <div className="hidden md:flex items-center">
+            <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="default"
+                  className="items-center gap-2 !p-2"
+                  title="Add User"
+                >
+                  <IconPlus className="size-4" />
+                  Add User
+                </Button>
+              </SheetTrigger>
+              <SheetContent className="overflow-y-auto max-h-screen">
+                {/* ...existing code for SheetContent... */}
+                <SheetHeader>
+                  <SheetTitle>Add User</SheetTitle>
+                  <SheetDescription>
+                    Fill in the details to create a new user. Role options
+                    depend on your permissions.
+                  </SheetDescription>
+                </SheetHeader>
+                <form onSubmit={handleCreateUser} className="grid gap-6 !mt-6">
+                  {/* ...existing code for form fields... */}
+                  <div className="grid gap-2 p-0!">
+                    <Label htmlFor="user-name">Name</Label>
+                    <Input
+                      id="user-name"
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, name: e.target.value }))
+                      }
+                      placeholder="Full name"
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2 p-0!">
+                    <Label htmlFor="user-email">Email</Label>
+                    <Input
+                      id="user-email"
+                      type="email"
+                      value={form.email}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, email: e.target.value }))
+                      }
+                      placeholder="name@example.com"
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2 p-0!">
+                    <Label htmlFor="user-password">Password</Label>
+                    <Input
+                      id="user-password"
+                      type="password"
+                      value={form.password}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, password: e.target.value }))
+                      }
+                      placeholder="Enter password"
+                      required
+                    />
+                  </div>
+                  <div className="grid gap-2 p-0!">
+                    <Label htmlFor="user-role">Role</Label>
+                    <Select
+                      value={form.role}
+                      onValueChange={(val) =>
+                        setForm((f) => ({ ...f, role: val }))
+                      }
+                    >
+                      <SelectTrigger id="user-role" className="w-full">
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allowedRoles.map((r) => (
+                          <SelectItem key={r} value={r}>
+                            {r}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="grid gap-2 p-0!">
+                    <Label htmlFor="user-active">Status</Label>
+                    <Select
+                      value={form.isActive}
+                      onValueChange={(val) =>
+                        setForm((f) => ({ ...f, isActive: val }))
+                      }
+                    >
+                      <SelectTrigger id="user-active" className="w-full">
+                        <SelectValue placeholder="Select status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Active</SelectItem>
+                        <SelectItem value="false">Inactive</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  {usersError && (
+                    <div className="text-red-600 text-sm">{usersError}</div>
+                  )}
+                  <SheetFooter className="mt-2!">
+                    <Button
+                      type="submit"
+                      disabled={!canCreate || createLoading}
+                    >
+                      {createLoading ? "Creating..." : "Create User"}
+                    </Button>
+                    <SheetClose asChild>
+                      <Button type="button" variant="outline">
+                        Cancel
+                      </Button>
+                    </SheetClose>
+                  </SheetFooter>
+                </form>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
         {/* Subtitle and current user info */}
         <p className="text-sm text-muted-foreground">
@@ -448,176 +451,6 @@ const Users = () => {
           <div className="text-center text-muted-foreground">
             Loading Users...
           </div>
-        ) : isMobile ? (
-          <>
-            {paginatedUsers.map((user) => (
-              <div key={user._id || user.email} className="!mb-2">
-                <div className="w-full flex flex-col gap-3 !px-3 !py-2 rounded-lg border bg-card">
-                  <div className="flex flex-row items-center justify-between">
-                    <div className="flex items-center gap-5">
-                      <Avatar className="bg-white/60 backdrop-blur-md border border-white/30 text-black flex items-center justify-center w-10 h-10 rounded-full shadow-md">
-                        {user.name
-                          ? user.name
-                              .split(" ")
-                              .map((n) => n[0])
-                              .join("")
-                              .toUpperCase()
-                          : "U"}
-                      </Avatar>
-                      <div>
-                        <p className="text-sm">{user.name}</p>
-                        <p className="text-xs">{user.email}</p>
-                      </div>
-                    </div>
-                    <Badge
-                      variant="outline"
-                      className="!px-1.5 flex items-center gap-1"
-                    >
-                      <IconCircleCheckFilled className="size-4 fill-green-500 dark:fill-green-400" />
-                      {user.isActive === true || user.isActive === "true"
-                        ? "active"
-                        : "inactive"}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between !mt-2">
-                    <p className="text-sm">
-                      role: <span className="text-xs">{user.role}</span>
-                    </p>
-                    <div className="flex items-center !gap-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button variant="secondary" size="icon">
-                            <Eye className="size-4" />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>View</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => handleDeleteUser(user._id)}
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
-                              />
-                            </svg>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete</TooltipContent>
-                      </Tooltip>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-            {/* Pagination for mobile cards (matching trips-data-table) */}
-            <div className="flex items-center justify-between !px-4 !py-2">
-              <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
-                {paginatedUsers.length} of {filtered.length} row(s) displayed.
-              </div>
-              <div className="flex w-full items-center !gap-8 lg:w-fit">
-                <div className="hidden items-center !gap-2 lg:flex">
-                  <Label
-                    htmlFor="rows-per-page"
-                    className="text-sm font-medium"
-                  >
-                    Rows per page
-                  </Label>
-                  <Select
-                    value={`${pageSize}`}
-                    onValueChange={(value) => {
-                      setPage(0);
-                      // @ts-ignore
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                      // @ts-ignore
-                      setPageSize(Number(value));
-                    }}
-                  >
-                    <SelectTrigger
-                      size="sm"
-                      className="w-20"
-                      id="rows-per-page"
-                    >
-                      <SelectValue placeholder={pageSize} />
-                    </SelectTrigger>
-                    <SelectContent side="top">
-                      {[10, 20, 30, 40, 50].map((size) => (
-                        <SelectItem key={size} value={`${size}`}>
-                          {size}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex w-fit items-center justify-center text-sm font-medium">
-                  Page {page + 1} of {Math.ceil(filtered.length / pageSize)}
-                </div>
-                <div className="ml-auto flex items-center !gap-2 lg:!ml-0">
-                  <Button
-                    variant="outline"
-                    className="hidden h-8 w-8 p-0 lg:flex"
-                    onClick={() => setPage(0)}
-                    disabled={page === 0}
-                  >
-                    <span className="sr-only">Go to first page</span>
-                    <IconChevronsLeft />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="size-8"
-                    size="icon"
-                    onClick={() => setPage((p) => Math.max(0, p - 1))}
-                    disabled={page === 0}
-                  >
-                    <span className="sr-only">Go to previous page</span>
-                    <IconChevronLeft />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="size-8"
-                    size="icon"
-                    onClick={() =>
-                      setPage((p) =>
-                        p + 1 < Math.ceil(filtered.length / pageSize)
-                          ? p + 1
-                          : p
-                      )
-                    }
-                    disabled={page + 1 >= Math.ceil(filtered.length / pageSize)}
-                  >
-                    <span className="sr-only">Go to next page</span>
-                    <IconChevronRight />
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="hidden size-8 lg:flex"
-                    size="icon"
-                    onClick={() =>
-                      setPage(
-                        Math.max(0, Math.ceil(filtered.length / pageSize) - 1)
-                      )
-                    }
-                    disabled={page + 1 >= Math.ceil(filtered.length / pageSize)}
-                  >
-                    <span className="sr-only">Go to last page</span>
-                    <IconChevronsRight />
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </>
         ) : (
           <UsersDataTable
             data={paginatedUsers}

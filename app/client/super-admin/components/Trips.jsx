@@ -15,6 +15,7 @@ function useIsMobile() {
   return isMobile;
 }
 import dynamic from "next/dynamic";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 // import Link from "next/link";
 // import { ... } from "@/components/ui/alert-dialog";
@@ -27,6 +28,15 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+
+import {
+  Sheet,
+  SheetTrigger,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { IconPlus, IconRefresh } from "@tabler/icons-react";
 import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
 import { useSuperAdmin } from "../context/SuperAdminContext";
@@ -89,6 +99,9 @@ export default function Trips() {
   const [dateFilter, setDateFilter] = useState("week");
   // Single dialog state for delete, stores trip id or null
   const [deleteDialogTripId, setDeleteDialogTripId] = useState(null);
+
+  // For mobile: close dialog when trip is created
+  const [shouldCloseMobileDialog, setShouldCloseMobileDialog] = useState(false);
 
   // Automatically fetch trips on initial mount
   React.useEffect(() => {
@@ -180,9 +193,8 @@ export default function Trips() {
       <div className="flex flex-col gap-2 mb-6!">
         {/* First line: title and add trip (mobile: both, desktop: title left, add trip right) */}
         <div className="flex flex-row items-center w-full pr-1!">
-          {/* Mobile: title left, add trip right */}
           <h2 className="text-xl font-semibold flex-1">Trips Management</h2>
-          <div className="md:hidden flex items-center justify-end">
+          {isMobile ? (
             <Button
               variant="default"
               className="flex items-center gap-2"
@@ -192,11 +204,9 @@ export default function Trips() {
               <IconPlus className="size-4" />
               Add Trip
             </Button>
-          </div>
-          {/* Desktop: add trip button right-aligned */}
-          <div className="hidden md:flex items-center">
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
+          ) : (
+            <Sheet open={dialogOpen} onOpenChange={setDialogOpen}>
+              <SheetTrigger asChild>
                 <Button
                   variant="default"
                   className="items-center gap-2"
@@ -205,53 +215,67 @@ export default function Trips() {
                   <IconPlus className="size-4" />
                   Add Trip
                 </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+              </SheetTrigger>
+              <SheetContent
+                side="right"
+                className="overflow-y-auto max-h-screen w-[600px]"
+              >
+                <SheetHeader>
+                  <SheetTitle>Create Trip</SheetTitle>
+                  <SheetDescription>
+                    Fill in the details to create a new trip.
+                  </SheetDescription>
+                </SheetHeader>
                 <TripCreateForm onSuccess={() => setDialogOpen(false)} />
-              </DialogContent>
-            </Dialog>
-          </div>
+              </SheetContent>
+            </Sheet>
+          )}
         </div>
+
         <p className="text-sm text-muted-foreground">
           Manage and monitor all trips.
         </p>
+
         {/* Second line: search and refresh (mobile only) */}
-        <div className="flex flex-row items-center gap-2 w-full md:hidden">
-          <Input
-            placeholder="Search by truck, driver or route..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-45 flex-1"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            <IconRefresh className="mr-1! size-4" />
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </Button>
-        </div>
-        {/* Second line: search and refresh (desktop only) */}
-        <div className="hidden md:flex flex-row items-center gap-2 w-full justify-end">
-          <Input
-            placeholder="Search by truck, driver or route..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-45 md:w-62.5 lg:w-75"
-          />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={refreshing}
-          >
-            <IconRefresh className="mr-1! size-4" />
-            {refreshing ? "Refreshing..." : "Refresh"}
-          </Button>
-        </div>
-        {/* Third line: date filter, always right-aligned, default to today */}
+        {isMobile ? (
+          <div className="flex flex-row items-center gap-2 w-full">
+            <Input
+              placeholder="Search by truck, driver or route..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-45 flex-1"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <IconRefresh className="mr-1! size-4" />
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
+        ) : (
+          <div className="flex flex-row items-center gap-2 w-full justify-end">
+            <Input
+              placeholder="Search by truck, driver or route..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-45 md:w-62.5 lg:w-75"
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <IconRefresh className="mr-1! size-4" />
+              {refreshing ? "Refreshing..." : "Refresh"}
+            </Button>
+          </div>
+        )}
+
+        {/* Third line: date filter */}
         <div className="flex flex-row gap-2 justify-end mt-2">
           <Select value={dateFilter} onValueChange={setDateFilter}>
             <SelectTrigger size="sm" className="min-w-35">
@@ -277,12 +301,41 @@ export default function Trips() {
             </SelectContent>
           </Select>
         </div>
-        {/* Dialog for mobile add trip button */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
-            <TripCreateForm onSuccess={() => setDialogOpen(false)} />
-          </DialogContent>
-        </Dialog>
+
+        {/* Mobile full-screen overlay with framer-motion animation */}
+        <AnimatePresence>
+          {isMobile && dialogOpen && !shouldCloseMobileDialog && (
+            <motion.div
+              className="fixed inset-0 z-50 flex flex-col bg-background"
+              initial={{ x: "100%", opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: "100%", opacity: 0 }}
+              transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            >
+              <div className="flex items-center justify-between !p-4 border-b">
+                <h2 className="text-lg font-semibold">Create Trip</h2>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setDialogOpen(false)}
+                >
+                  ✕
+                </Button>
+              </div>
+              <div className="flex-1 overflow-y-auto !p-4">
+                <TripCreateForm
+                  onSuccess={() => {
+                    setShouldCloseMobileDialog(true);
+                    setTimeout(() => {
+                      setDialogOpen(false);
+                      setShouldCloseMobileDialog(false);
+                    }, 400); // allow exit animation
+                  }}
+                />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div>
@@ -293,13 +346,6 @@ export default function Trips() {
               Loading trips
             </span>
           </div>
-        ) : isMobile ? (
-          <TripsListCards
-            trips={filteredTrips}
-            trucks={trucks}
-            deleteDialogTripId={deleteDialogTripId}
-            setDeleteDialogTripId={setDeleteDialogTripId}
-          />
         ) : (
           <DataTable data={filteredTrips} meta={{ trucks, users }} />
         )}

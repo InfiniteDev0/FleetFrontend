@@ -311,6 +311,8 @@ export default function TripPage() {
     }
   }, [trips, fetchTrips]);
 
+  const trip = trips.find((t) => String(t.id ?? t._id) === String(tripId));
+
   useEffect(() => {
     // Set loading to false once trips are loaded
     if (trips && trips.length > 0) {
@@ -338,8 +340,6 @@ export default function TripPage() {
       }
     }
   }, [trips, trip]);
-
-  const trip = trips.find((t) => String(t.id ?? t._id) === String(tripId));
 
   if (loading) {
     return (

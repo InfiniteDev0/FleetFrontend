@@ -91,6 +91,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
+import { Card } from "@/components/ui/card";
 import { useTripsForDate } from "@/app/hooks/useFleetData";
 import Link from "next/link";
 
@@ -629,61 +630,311 @@ export function DataTable({
     }
   }
 
+  // Responsive rendering: show table for large screens, card list for small screens
+  // Use window.matchMedia or CSS classes to switch UI
+  const [isMobile, setIsMobile] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1024px)");
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    setIsMobile(mq.matches);
+    mq.addEventListener("change", handler);
+    return () => mq.removeEventListener("change", handler);
+  }, []);
+
+  // Card UI for mobile
+  function StatusBadge({ status }: { status: string }) {
+    let icon: React.ReactNode = null;
+    let colorClass = "";
+    if (status === "scheduled") {
+      icon = (
+        <IconAlertTriangle className="size-4 text-yellow-500 dark:text-yellow-400" />
+      );
+      colorClass = "text-yellow-600 dark:text-yellow-400";
+    } else if (status === "in-progress") {
+      icon = (
+        <IconLoader className="size-4 animate-spin text-green-500 dark:text-green-400" />
+      );
+      colorClass = "text-green-600 dark:text-green-400";
+    } else if (status === "completed") {
+      icon = (
+        <IconCircleCheckFilled className="size-4 fill-blue-500 dark:fill-blue-400" />
+      );
+      colorClass = "text-blue-600 dark:text-blue-400";
+    } else {
+      icon = <IconQuestionMark className="size-4 text-gray-400" />;
+      colorClass = "text-gray-500 dark:text-gray-400";
+    }
+    return (
+      <Badge
+        variant="outline"
+        className={`px-1.5 flex items-center gap-1 ${colorClass}`}
+      >
+        {icon}
+        {status === "in-progress"
+          ? "In Progress"
+          : status === "scheduled"
+          ? "Scheduled"
+          : status === "completed"
+          ? "Completed"
+          : status}
+      </Badge>
+    );
+  }
+
+  // Tooltip components (reuse from UI)
+  const Tooltip = ({ children }: { children: React.ReactNode }) => (
+    <div className="relative group">{children}</div>
+  );
+  const TooltipTrigger = ({ asChild, children }: any) => children;
+  const TooltipContent = ({ children }: any) => (
+    <div className="absolute z-20 left-1/2 -translate-x-1/2 bottom-full mb-2 px-2 py-1 rounded bg-black text-white text-xs opacity-0 group-hover:opacity-100 pointer-events-none">
+      {children}
+    </div>
+  );
+
+  // Card rendering for mobile
+  const pagedRows = table.getPaginationRowModel().rows;
+  const pagedTrips = pagedRows.map((row) => row.original);
+
+  // For delete dialog (must be inside DataTable scope)
+  const [deleteDialogTripId, setDeleteDialogTripId] = React.useState<
+    string | null
+  >(null);
+
   return (
     <div className="w-full flex-col justify-start gap-6!">
-      {/* Table */}
+      {/* Responsive: show table for desktop, cards for mobile */}
       <div className="relative flex flex-col gap-4! overflow-auto px-2!">
-        <div className="overflow-hidden rounded-lg border">
-          <DndContext
-            collisionDetection={closestCenter}
-            modifiers={[restrictToVerticalAxis]}
-            onDragEnd={handleDragEnd}
-            sensors={sensors}
-            id={sortableId}
-          >
-            <Table>
-              <TableHeader className="bg-muted sticky top-0 z-10">
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => (
-                      <TableHead key={header.id} colSpan={header.colSpan}>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </TableHead>
-                    ))}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody className="**:data-[slot=table-cell]:first:w-8!">
-                {table.getRowModel().rows?.length ? (
-                  <SortableContext
-                    items={dataIds}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {table.getRowModel().rows.map((row) => (
-                      <DraggableRow key={row.id} row={row} />
-                    ))}
-                  </SortableContext>
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
+        {!isMobile ? (
+          <div className="overflow-hidden rounded-lg border">
+            <DndContext
+              collisionDetection={closestCenter}
+              modifiers={[restrictToVerticalAxis]}
+              onDragEnd={handleDragEnd}
+              sensors={sensors}
+              id={sortableId}
+            >
+              <Table>
+                <TableHeader className="bg-muted sticky top-0 z-10">
+                  {table.getHeaderGroups().map((headerGroup) => (
+                    <TableRow key={headerGroup.id}>
+                      {headerGroup.headers.map((header) => (
+                        <TableHead key={header.id} colSpan={header.colSpan}>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(
+                                header.column.columnDef.header,
+                                header.getContext()
+                              )}
+                        </TableHead>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableHeader>
+                <TableBody className="**:data-[slot=table-cell]:first:w-8!">
+                  {table.getRowModel().rows?.length ? (
+                    <SortableContext
+                      items={dataIds}
+                      strategy={verticalListSortingStrategy}
                     >
-                      No results.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </DndContext>
-        </div>
+                      {table.getRowModel().rows.map((row) => (
+                        <DraggableRow key={row.id} row={row} />
+                      ))}
+                    </SortableContext>
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={columns.length}
+                        className="h-24 text-center"
+                      >
+                        No results.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </DndContext>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-4">
+            {pagedTrips.length === 0 ? (
+              <div className="h-24 text-center text-muted-foreground">
+                No results.
+              </div>
+            ) : (
+              pagedTrips.map((trip) => {
+                const tripId = String(trip.id ?? trip._id ?? "");
+                const start = trip.startTime ? new Date(trip.startTime) : null;
+                const end = trip.endTime ? new Date(trip.endTime) : null;
+                return (
+                  <Card
+                    key={tripId}
+                    className="w-full flex flex-row items-stretch justify-between py-3! px-3! gap-2"
+                  >
+                    {/* Left: SVG + route info */}
+                    <div className="flex flex-col justify-between flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        {/* SVG route icon vertical */}
+                        <div className="flex flex-col items-center justify-center pr-2!">
+                          <svg
+                            width="12"
+                            height="100%"
+                            viewBox="0 0 16 100"
+                            fill="none"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
+                            {/* Origin block */}
+                            <path
+                              fill="#0046E0"
+                              stroke="#9FBBF7"
+                              strokeWidth=".5"
+                              d="M14 2v12H2V2h12z"
+                            />
+                            <rect
+                              width="4"
+                              height="4"
+                              x="6"
+                              y="6"
+                              stroke="#fff"
+                              rx="2"
+                            />
+                            {/* Destination block */}
+                            <path
+                              fill="#0046E0"
+                              stroke="#9FBBF7"
+                              strokeWidth=".5"
+                              d="M14 86v12H2V86h12z"
+                            />
+                            <rect
+                              width="4"
+                              height="4"
+                              x="6"
+                              y="90"
+                              fill="#fff"
+                              stroke="#fff"
+                              rx="2"
+                            />
+                            {/* Connecting line */}
+                            <path
+                              fill="#636D78"
+                              fillRule="evenodd"
+                              d="M7.872 20v1.454h1V20h-1zm0 4.361v2.907h1v-2.907h-1zm0 5.815v2.907h1v-2.907h-1zm0 5.814v2.907h1V35.99h-1zm0 5.815v2.907h1v-2.907h-1zm0 5.815v2.907h1V47.62h-1zm0 5.814v2.907h1v-2.907h-1zm0 5.815v2.907h1V59.25h-1zm0 5.814v2.908h1v-2.908h-1zm0 5.815v2.907h1v-2.907h-1zm1 7.819V75h-1v3.697l-2.129-2.365-.743.67 3 3.333.372.412.371-.412 3-3.334-.743-.669-2.128 2.365z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </div>
+                        {/* Route info */}
+                        <div className="flex flex-col flex-1 min-w-0">
+                          <div className="flex flex-col">
+                            <span className="text-base truncate">
+                              {trip.route?.origin || "-"}
+                            </span>
+                            <span className="text-xs text-muted-foreground  truncate">
+                              {start
+                                ? `${start.toLocaleDateString()} ${start.toLocaleTimeString(
+                                    [],
+                                    { hour: "2-digit", minute: "2-digit" }
+                                  )}`
+                                : "-"}
+                            </span>
+                          </div>
+                          <div className="flex flex-col  mt-8!">
+                            <span className=" text-base truncate">
+                              {trip.route?.destination || "-"}
+                            </span>
+                            <span className="text-xs text-muted-foreground  truncate">
+                              {end
+                                ? `${end.toLocaleDateString()} ${end.toLocaleTimeString(
+                                    [],
+                                    { hour: "2-digit", minute: "2-digit" }
+                                  )}`
+                                : "-"}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    {/* Right: status badge (top), actions (bottom) */}
+                    <div className="flex flex-col justify-between items-end min-w-17.5 pl-2">
+                      {/* Status badge (from trips-data-table) */}
+                      <StatusBadge status={trip.status} />
+                      {/* Actions: view, delete, complete (if not completed) */}
+                      <div className="flex flex-row gap-2 mt-auto">
+                        {/* View button with Tooltip */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link
+                              href={`/client/super-admin/trips/${encodeURIComponent(
+                                tripId
+                              )}?id=${encodeURIComponent(tripId)}`}
+                              passHref
+                            >
+                              <Button size="icon" variant="ghost">
+                                <span className="sr-only">View</span>
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                  />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                  />
+                                </svg>
+                              </Button>
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">View Trip</TooltipContent>
+                        </Tooltip>
+                        {/* Delete button with Tooltip and dialog */}
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => setDeleteDialogTripId(tripId)}
+                            >
+                              <span className="sr-only">Delete</span>
+                              <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                className="h-5 w-5"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
+                                />
+                              </svg>
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            Delete Trip
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })
+            )}
+          </div>
+        )}
 
-        {/* Pagination */}
+        {/* Pagination (shared) */}
         <div className="flex items-center justify-between !px-4">
           <div className="text-muted-foreground hidden flex-1 text-sm lg:flex">
             {table.getFilteredSelectedRowModel().rows.length} of{" "}
@@ -762,6 +1013,14 @@ export function DataTable({
           </div>
         </div>
       </div>
+      {/* Delete dialog for mobile cards */}
+      {deleteDialogTripId && (
+        <DeleteTripDialog
+          refNumber={deleteDialogTripId}
+          tripId={deleteDialogTripId}
+          onSuccess={() => setDeleteDialogTripId(null)}
+        />
+      )}
     </div>
   );
 }

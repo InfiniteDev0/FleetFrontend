@@ -61,6 +61,7 @@ import {
 } from "@tabler/icons-react";
 import { CirclePause, CirclePlay, MoveDown } from "lucide-react";
 import { toast } from "sonner";
+import TripsListCards from "../../../../../components/trips-listCards";
 
 const PopoverDemo = dynamic(
   () =>
@@ -170,6 +171,8 @@ const Truckpage = () => {
     }
   }, [truck]);
 
+  // State for delete dialog (for trips cards)
+  const [deleteDialogTripId, setDeleteDialogTripId] = useState(null);
   // Calculate total trips for this truck (must be before early returns)
   const truckTripsCount = React.useMemo(() => {
     if (!truck) return 0;
@@ -275,20 +278,23 @@ const Truckpage = () => {
   };
 
   return (
-    <div className="!p-6 !space-y-6 min-h-[calc(100vh-64px)]">
+    <div className="!p-3 md:!p-6 !space-y-6 min-h-[calc(100vh-64px)]">
       {/* 1️⃣ Header: Truck Identity & Actions */}
       <Card className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 !p-6 sticky top-0 z-10">
         <div>
-          <div className="flex items-center gap-3 text-xl font-bold">
+          <div className="flex items-center gap-3">
             <img
               src="https://png.pngtree.com/png-vector/20231023/ourmid/pngtree-3d-illustration-of-tanker-truck-png-image_10312658.png"
               alt=""
               className="w-15"
             />
-            <span>{truck.plateNumber}</span>
-            <span>
-              — {truck.model} ({truck.year || "-"})
-            </span>
+            <p className="text-sm md:text-xl">
+              {" "}
+              <span>{truck.plateNumber}</span>
+              <span>
+                — {truck.model} ({truck.year || "-"})
+              </span>
+            </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -665,21 +671,35 @@ const Truckpage = () => {
         </Card>
       </div>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="!mb-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="trips">Trips</TabsTrigger>
-          <TabsTrigger value="expenses">Expenses & Maintenance</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
-          {(role === "admin" || role === "super_admin") && (
-            <TabsTrigger value="activity">Activity Log</TabsTrigger>
-          )}
-        </TabsList>
+      <Tabs defaultValue="overview" className="w-full overflow-x-auto">
+        {/* Tabs List: scrollable horizontally */}
+        <div className="w-full overflow-x-auto">
+          <TabsList className="inline-flex min-w-max !mb-4 gap-2 md:gap-4">
+            <TabsTrigger value="overview" className="flex-shrink-0">
+              Overview
+            </TabsTrigger>
+            <TabsTrigger value="trips" className="flex-shrink-0">
+              Trips
+            </TabsTrigger>
+            <TabsTrigger value="expenses" className="flex-shrink-0">
+              Expenses & Maintenance
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="flex-shrink-0">
+              Documents
+            </TabsTrigger>
+            {(role === "admin" || role === "super_admin") && (
+              <TabsTrigger value="activity" className="flex-shrink-0">
+                Activity Log
+              </TabsTrigger>
+            )}
+          </TabsList>
+        </div>
 
+        {/* Overview Tab */}
         <TabsContent value="overview">
           <Card className="!p-6 mb-4">
             <CardTitle className="!mb-4">Truck Details</CardTitle>
-            <CardContent>
+            <CardContent className="!p-0">
               <form className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {/* Number Plate */}
                 <div>
@@ -781,21 +801,22 @@ const Truckpage = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
         {/* Other Tabs */}
         <TabsContent value="trips">
           <TripTableWrapper truckId={truck?._id || truck?.id} />
         </TabsContent>
-
-        {/* Trip table wrapper computed below */}
 
         <TabsContent value="expenses">
           <Card className="!p-4 !mb-4">
             Expenses & Maintenance logs go here
           </Card>
         </TabsContent>
+
         <TabsContent value="documents">
           <Card className="!p-4 !mb-4">Documents info goes here</Card>
         </TabsContent>
+
         {(role === "admin" || role === "super_admin") && (
           <TabsContent value="activity">
             <Card className="!p-4 !mb-4">Activity log goes here</Card>

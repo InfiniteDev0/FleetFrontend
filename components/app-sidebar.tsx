@@ -32,7 +32,6 @@ const navMain = [
   { title: "Users", icon: UserRound },
   { title: "Trucks", icon: Truck },
   { title: "Trips", icon: Route },
-  { title: "Repairs", icon: Toolbox },
   { title: "Reports", icon: FileChartLine },
 ];
 
