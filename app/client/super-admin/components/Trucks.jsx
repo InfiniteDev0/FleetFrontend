@@ -14,8 +14,6 @@ import {
 import { IconPlus, IconRefresh } from "@tabler/icons-react";
 import // Dialog components not used
 "@/components/ui/dialog";
-
-// ...existing code...
 import { Label } from "@/components/ui/label";
 import { useSuperAdmin } from "../../../context/SuperAdminContext";
 import { toast } from "sonner";
@@ -101,8 +99,8 @@ const Trucks = () => {
         status: "",
         assignedDriverId: "",
       }));
-
       setDialogOpen(false);
+      setSheetOpen(false); // <-- close the sheet after creation
     } catch (err) {
       toast.error(err?.message || "Failed to create truck");
     } finally {
@@ -326,7 +324,8 @@ const Trucks = () => {
                   Add Truck
                 </Button>
               </SheetTrigger>
-              <SheetContent className="max-w-2xl w-[95vw] max-h-[90vh] overflow-y-auto">
+              <SheetContent className="max-w-2xl w-[95vw] max-h-screen h-screen overflow-y-auto flex flex-col">
+                {/* ↑↑↑ ensure full height and scrollable */}
                 <SheetHeader>
                   <SheetTitle>Add Truck</SheetTitle>
                   <SheetDescription>
@@ -335,7 +334,7 @@ const Trucks = () => {
                 </SheetHeader>
                 <form
                   onSubmit={handleCreateTruckWithFeedback}
-                  className="grid gap-6 mt-6"
+                  className="grid gap-6 mt-6 flex-1"
                 >
                   <div className="grid gap-2">
                     <Label htmlFor="truck-plate">Plate Number</Label>

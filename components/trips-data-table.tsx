@@ -373,54 +373,59 @@ const columns: ColumnDef<z.infer<typeof tripSchema>>[] = [
 
   {
     id: "actions",
-    cell: ({ row }) => (
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            variant="ghost"
-            className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
-            size="icon"
-          >
-            <IconDotsVertical />
-            <span className="sr-only">Open menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent
-          className="!p-2 !m-1 min-w-[190px] rounded-md shadow-md bg-popover text-popover-foreground"
-          align="end"
-        >
-          <DropdownMenuItem asChild>
-            <Link
-              href={`/client/super-admin/trips/${encodeURIComponent(
-                String(row.original.id ?? (row.original._id || ""))
-              )}?id=${encodeURIComponent(
-                String(row.original.id ?? (row.original._id || ""))
-              )}`}
+    cell: ({ row }) => {
+      const { currentRole } = useSuperAdmin();
+      return (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              className="data-[state=open]:bg-muted text-muted-foreground flex size-8"
+              size="icon"
             >
-              <IconEye className="mr-2 size-4 text-muted-foreground" />
-              View Trip
-            </Link>
-          </DropdownMenuItem>
-
-          <DeleteTruckAlert
-            trigger={
-              <DropdownMenuItem className="px-2 py-2 flex items-center gap-2 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-sm cursor-pointer">
-                <IconTrash className="size-4 text-red-600" />
-                <span>Delete Trip</span>
-              </DropdownMenuItem>
-            }
+              <IconDotsVertical />
+              <span className="sr-only">Open menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="!p-2 !m-1 min-w-[190px] rounded-md shadow-md bg-popover text-popover-foreground"
+            align="end"
           >
-            {(close: () => void) => (
-              <DeleteTripDialog
-                refNumber={String(row.original.id ?? (row.original._id || ""))}
-                tripId={String(row.original.id ?? (row.original._id || ""))}
-                onSuccess={close}
-              />
-            )}
-          </DeleteTruckAlert>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    ),
+            <DropdownMenuItem asChild>
+              <Link
+                href={`/client/${currentRole}/trips/${encodeURIComponent(
+                  String(row.original.id ?? (row.original._id || ""))
+                )}?id=${encodeURIComponent(
+                  String(row.original.id ?? (row.original._id || ""))
+                )}`}
+              >
+                <IconEye className="mr-2 size-4 text-muted-foreground" />
+                View Trip
+              </Link>
+            </DropdownMenuItem>
+
+            <DeleteTruckAlert
+              trigger={
+                <DropdownMenuItem className="px-2 py-2 flex items-center gap-2 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-sm cursor-pointer">
+                  <IconTrash className="size-4 text-red-600" />
+                  <span>Delete Trip</span>
+                </DropdownMenuItem>
+              }
+            >
+              {(close: () => void) => (
+                <DeleteTripDialog
+                  refNumber={String(
+                    row.original.id ?? (row.original._id || "")
+                  )}
+                  tripId={String(row.original.id ?? (row.original._id || ""))}
+                  onSuccess={close}
+                />
+              )}
+            </DeleteTruckAlert>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+    },
   },
 ];
 
@@ -560,6 +565,7 @@ export function DataTable({
   const { trips: providerTrips = [], trucks: contextTrucks = [] } =
     useSuperAdmin();
   const drivers = meta?.drivers || [];
+  const { currentRole } = useSuperAdmin();
 
   // If initialData is provided and non-empty, use it; otherwise, always use providerTrips
   const [data, setData] = React.useState<z.infer<typeof tripSchema>[]>(() => {
@@ -716,7 +722,7 @@ export function DataTable({
   return (
     <div className="w-full flex-col justify-start gap-6!">
       {/* Responsive: show table for desktop, cards for mobile */}
-      <div className="relative flex flex-col gap-4! overflow-auto px-2!">
+      <div className="relative flex flex-col gap-4! overflow-auto">
         {!isMobile ? (
           <div className="overflow-hidden rounded-lg border">
             <DndContext
@@ -876,7 +882,7 @@ export function DataTable({
                         <div>
                           <div>
                             <Link
-                              href={`/client/super-admin/trips/${encodeURIComponent(
+                              href={`/client/${currentRole}/trips/${encodeURIComponent(
                                 tripId
                               )}?id=${encodeURIComponent(tripId)}`}
                               passHref

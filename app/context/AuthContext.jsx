@@ -47,7 +47,8 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("user");
     Cookies.remove("user");
     setUser(null);
-    router.push("/");
+    // Instead of router.push("/"), redirect to the logout page
+    router.push("/logout");
   };
 
   const login = async (email, password) => {

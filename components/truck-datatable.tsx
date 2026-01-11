@@ -170,7 +170,8 @@ function DeleteTruckDialog({ plateNumber, truckId, fetchTrucks, onSuccess }) {
   );
 }
 
-function getColumns(fetchTrucks?: () => Promise<void>) {
+function getColumns(fetchTrucks?: () => Promise<void>, currentRole?: string) {
+  const { currentRole: role } = useSuperAdmin();
   return [
     {
       id: "drag",
@@ -299,7 +300,7 @@ function getColumns(fetchTrucks?: () => Promise<void>) {
               className="px-2 py-2 flex items-center gap-2 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
             >
               <Link
-                href={`/client/super-admin/trucks/${encodeURIComponent(
+                href={`/client/${currentRole}/trucks/${encodeURIComponent(
                   row.original.plateNumber
                 )}?id=${encodeURIComponent(
                   row.original.id ?? row.original._id ?? ""
@@ -410,6 +411,7 @@ export function TrucksDataTable({
     [data]
   );
 
+  const { currentRole } = useSuperAdmin();
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
@@ -432,7 +434,10 @@ export function TrucksDataTable({
     useSensor(KeyboardSensor)
   );
   const dataIds = order.map(String);
-  const columns = React.useMemo(() => getColumns(fetchTrucks), [fetchTrucks]);
+  const columns = React.useMemo(
+    () => getColumns(fetchTrucks, currentRole),
+    [fetchTrucks, currentRole]
+  );
   const table = useReactTable({
     data: normalized,
     columns,
@@ -474,7 +479,7 @@ export function TrucksDataTable({
 
   return (
     <div className="w-full flex-col justify-start gap-6">
-      <div className="relative flex flex-col gap-4 overflow-auto !px-4">
+      <div className="relative flex flex-col gap-4 overflow-auto">
         {/* large screen sizes display this  */}
         <div className="overflow-hidden rounded-lg border md:block hidden">
           <DndContext
@@ -608,7 +613,7 @@ export function TrucksDataTable({
                       <div>
                         <div>
                           <Link
-                            href={`/client/super-admin/trucks/${encodeURIComponent(
+                            href={`/client/${currentRole}/trucks/${encodeURIComponent(
                               truck.plateNumber
                             )}?id=${encodeURIComponent(
                               truck.id ?? truck._id ?? ""

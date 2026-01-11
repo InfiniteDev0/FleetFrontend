@@ -41,7 +41,7 @@ const DataTable = dynamic(
 );
 
 const AddExpenseForm = dynamic(
-  () => import("../../../super-admin/components/forms/AddExpenseFrom"),
+  () => import("../../../super-admin/components/forms/AddExpenseForm"),
   {
     loading: () => (
       <div className="flex items-center justify-center p-4">
@@ -653,7 +653,7 @@ export default function TripPage() {
 
   return (
     <div className="!py-6 !px-4 lg:!px-6 flex flex-col gap-5">
-      <Card className="w-full">
+      <Card className="w-full md:flex hidden">
         <CardContent className="flex items-center justify-between gap-4 p-4">
           <div className="flex items-center gap-5">
             <img
@@ -662,7 +662,7 @@ export default function TripPage() {
               className="w-15"
             />
             {/* Left side: Route info in one line */}
-            <div className="flex items-center text-2xl font-bold tracking-wider">
+            <div className="flex flex-row items-center text-2xl font-bold tracking-wider">
               <span>{trip.route?.origin || "-"}</span>
 
               {/* SVG route arrow */}
@@ -815,6 +815,9 @@ export default function TripPage() {
                     </p>
                   </div>
                 </div>
+              </div>
+              <div className="md:hidden flex">
+                <StatusBadge status={trip.status} />
               </div>
             </div>
           </CardHeader>

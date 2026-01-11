@@ -5,9 +5,9 @@ import { NextResponse } from "next/server";
  * This is the single source of truth for routing by role
  */
 const ROLE_ROUTES = {
-  SUPER_ADMIN: "/super-admin",
-  ADMIN: "/admin",
-  OPERATOR: "/operator",
+  super_admin: "/client/super-admin",
+  admin: "/client/admin",
+  operator: "/client/operator",
 };
 
 /**
@@ -52,7 +52,6 @@ export function middleware(request) {
    */
   if (isPublicRoute(pathname)) {
     const dashboardPath = ROLE_ROUTES[role];
-
     return NextResponse.redirect(
       new URL(`${dashboardPath}/dashboard`, request.url)
     );
@@ -63,10 +62,9 @@ export function middleware(request) {
    * User can ONLY access their own role routes
    */
   const allowedBasePath = ROLE_ROUTES[role];
-
-  if (!pathname.startsWith(allowedBasePath)) {
+  if (!allowedBasePath || !pathname.startsWith(allowedBasePath)) {
     return NextResponse.redirect(
-      new URL(`${allowedBasePath}/dashboard`, request.url)
+      new URL(`${allowedBasePath || "/auth"}/dashboard`, request.url)
     );
   }
 

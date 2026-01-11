@@ -91,11 +91,10 @@ const TripCompleteDataSubmitform = ({
 
       doc.setFontSize(10);
       doc.setFont("helvetica", "normal");
+      // Split route into Origin and Destination rows
       const tripDetails = [
-        [
-          "Route",
-          `${trip?.route?.origin || "-"} → ${trip?.route?.destination || "-"}`,
-        ],
+        ["Origin", trip?.route?.origin || "-"],
+        ["Destination", trip?.route?.destination || "-"],
         ["Product", trip?.product || "-"],
         [
           "Truck",
@@ -257,17 +256,19 @@ const TripCompleteDataSubmitform = ({
 
         <div className="grid grid-cols-2 !gap-4">
           <div>
-            <p className="text-xs text-muted-foreground !mb-1">Route</p>
+            <p className="text-xs text-muted-foreground !mb-1">Origin</p>
+            <p className="text-sm font-medium">{trip?.route?.origin || "-"}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground !mb-1">Destination</p>
             <p className="text-sm font-medium">
-              {trip?.route?.origin || "-"} → {trip?.route?.destination || "-"}
+              {trip?.route?.destination || "-"}
             </p>
           </div>
-
           <div>
             <p className="text-xs text-muted-foreground !mb-1">Product</p>
             <p className="text-sm font-medium">{trip?.product || "-"}</p>
           </div>
-
           <div>
             <p className="text-xs text-muted-foreground !mb-1">Truck</p>
             <p className="text-sm font-medium">
@@ -275,14 +276,12 @@ const TripCompleteDataSubmitform = ({
               {truck?.model && ` (${truck.model})`}
             </p>
           </div>
-
           <div>
             <p className="text-xs text-muted-foreground !mb-1">Driver</p>
             <p className="text-sm font-medium">
               {truck?.driverName || truck?.driver || "-"}
             </p>
           </div>
-
           <div>
             <p className="text-xs text-muted-foreground !mb-1">Start Time</p>
             <p className="text-sm font-medium">
@@ -291,7 +290,6 @@ const TripCompleteDataSubmitform = ({
                 : "-"}
             </p>
           </div>
-
           <div>
             <p className="text-xs text-muted-foreground !mb-1">
               Driver Contact
@@ -322,7 +320,6 @@ const TripCompleteDataSubmitform = ({
               )}
             </p>
           </div>
-
           <div className="col-span-2">
             <p className="text-xs text-muted-foreground !mb-1">Created By</p>
             <p className="text-sm font-medium">
@@ -340,7 +337,6 @@ const TripCompleteDataSubmitform = ({
               )}
             </p>
           </div>
-
           <div>
             <p className="text-xs text-muted-foreground !mb-1">Status</p>
             {(() => {

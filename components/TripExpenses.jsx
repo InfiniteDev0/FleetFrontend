@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
-import{
+import {
   useReactTable,
   getCoreRowModel,
   flexRender,
@@ -52,7 +52,7 @@ import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useSuperAdmin } from "../app/context/SuperAdminContext";
 
 const AddExpenseForm = dynamic(
-  () => import("../app/client/super-admin/components/forms/AddExpenseFrom"),
+  () => import("../app/client/super-admin/components/forms/AddExpenseForm"),
   {
     loading: () => (
       <div className="flex items-center justify-center p-4">

@@ -28,7 +28,6 @@ import { SuperAdminProvider } from "../../context/SuperAdminContext";
 
 const pageIcons = {
   dashboard: LayoutDashboard,
-  users: UserRound,
   trucks: Truck,
   trips: Route,
   repairs: Toolbox,
