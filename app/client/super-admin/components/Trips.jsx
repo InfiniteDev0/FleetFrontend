@@ -38,9 +38,8 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { IconPlus, IconRefresh } from "@tabler/icons-react";
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
-import { useSuperAdmin } from "../context/SuperAdminContext";
 import { toast } from "sonner";
+import { useSuperAdmin } from "../../../context/SuperAdminContext";
 // import { Badge } from "@/components/ui/badge";
 
 const DataTable = dynamic(
@@ -98,8 +97,6 @@ export default function Trips() {
   // Date filter: 'all', 'today', 'week', 'month', 'year'
   const [dateFilter, setDateFilter] = useState("week");
   // Single dialog state for delete, stores trip id or null
-  const [deleteDialogTripId, setDeleteDialogTripId] = useState(null);
-
   // For mobile: close dialog when trip is created
   const [shouldCloseMobileDialog, setShouldCloseMobileDialog] = useState(false);
 

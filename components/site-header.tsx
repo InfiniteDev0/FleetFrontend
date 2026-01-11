@@ -16,7 +16,8 @@ import { Separator } from "@/components/ui/separator";
 import { useSidebar } from "@/components/ui/sidebar";
 import { ThemeToggle } from "./ThemeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { useSuperAdmin } from "@/app/client/super-admin/context/SuperAdminContext";
+import { useSuperAdmin } from "@/app/context/SuperAdminContext";
+
 
 function getBreadcrumbs(pathname: string) {
   const parts = pathname.split("/").filter(Boolean).slice(1);
@@ -99,13 +100,14 @@ export function SiteHeader({ activeSection }: { activeSection?: string }) {
           <div>
             <div className="flex items-center gap-4">
               <Avatar className="h-8 w-8 rounded-md">
-                <AvatarImage
-                  src={
-                    "https://galaxypfp.com/wp-content/uploads/2025/10/discord-zenitsu-pfp.webp"
-                  }
-                />
                 <AvatarFallback className="rounded-lg">
-                  {user.name?.[0] ?? "?"}
+                  {user.name
+                    ? user.name
+                        .split(" ")
+                        .map((n: string) => n[0])
+                        .join("")
+                        .toUpperCase()
+                    : "U"}
                 </AvatarFallback>
               </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">

@@ -41,7 +41,7 @@ const DataTable = dynamic(
 );
 
 const AddExpenseForm = dynamic(
-  () => import("../../components/forms/AddExpenseFrom"),
+  () => import("../../../super-admin/components/forms/AddExpenseFrom"),
   {
     loading: () => (
       <div className="flex items-center justify-center p-4">
@@ -65,7 +65,8 @@ const TripExpenses = dynamic(
 );
 
 const TripCompleteForm = dynamic(
-  () => import("../../components/forms/TripCompleteDataSubmitform"),
+  () =>
+    import("../../../super-admin/components/forms/TripCompleteDataSubmitform"),
   {
     loading: () => (
       <div className="flex items-center justify-center p-4">
@@ -136,7 +137,6 @@ import {
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
 
 import {
   Printer,

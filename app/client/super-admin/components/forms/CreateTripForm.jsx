@@ -17,7 +17,7 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { useSuperAdmin } from "../../context/SuperAdminContext";
+import { useSuperAdmin } from "../../../../context/SuperAdminContext";
 import { Calendar24 } from "../DatePicker";
 import { toast } from "sonner";
 
@@ -78,10 +78,7 @@ export default function TripCreateForm({ onSuccess }) {
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="w-full  rounded-md bg-background"
-    >
+    <form onSubmit={handleSubmit} className="w-full  rounded-md bg-background">
       {/* Content */}
       <div className="grid grid-cols-1 gap-4 md:!p-4">
         {/* Truck */}
@@ -177,14 +174,22 @@ export default function TripCreateForm({ onSuccess }) {
         {/* Status */}
         <div>
           <Label>Status</Label>
-          <Input
+          <Select
             value={
               forceScheduled ? "scheduled" : form.tripStatus || "scheduled"
             }
-            disabled
-            readOnly
-            className="bg-muted text-muted-foreground"
-          />
+            onValueChange={(val) => setForm((f) => ({ ...f, tripStatus: val }))}
+            disabled={forceScheduled}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="in-progress">In Progress</SelectItem>
+              {/* No "completed" option */}
+            </SelectContent>
+          </Select>
         </div>
 
         <Calendar24

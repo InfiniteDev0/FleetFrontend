@@ -63,7 +63,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { toast } from "sonner";
 
-import { useSuperAdmin } from "../app/client/super-admin/context/SuperAdminContext";
+import { useSuperAdmin } from "../app/context/SuperAdminContext";
 import { DeleteIcon, MoreHorizontal } from "lucide-react";
 
 function DeleteUserAlert({
@@ -220,36 +220,40 @@ const userColumns: ColumnDef<User>[] = [
   },
   {
     id: "actions",
-    cell: (info) => (
-      <DeleteUserAlert
-        userName={info.row.original.name}
-        userId={info.row.original.id ?? ""}
-        fetchUsers={undefined}
-        trigger={
-          <Button
-            variant="secondary"
-            size="icon"
-            className="h-8 w-8 p-0 m-0 mb-2 cursor-pointer rounded-full  transition"
-          >
-            <span className="sr-only">Open menu</span>
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
+    cell: (info) => {
+      const role = info.row.original.role;
+      if (role === "super_admin") return null;
+      return (
+        <DeleteUserAlert
+          userName={info.row.original.name}
+          userId={info.row.original.id ?? ""}
+          fetchUsers={undefined}
+          trigger={
+            <Button
+              variant="secondary"
+              size="icon"
+              className="h-8 w-8 p-0 m-0 mb-2 cursor-pointer rounded-full  transition"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
-              />
-            </svg>
-          </Button>
-        }
-      />
-    ),
+              <span className="sr-only">Open menu</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-5 w-5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
+                />
+              </svg>
+            </Button>
+          }
+        />
+      );
+    },
   },
 ];
 
@@ -553,29 +557,31 @@ export function UsersDataTable({ data, fetchUsers }: UsersDataTableProps) {
                     role: <span className="text-xs">{user.role}</span>
                   </p>
                   <div className="flex items-center gap-2">
-                    <DeleteUserAlert
-                      userName={user.name}
-                      userId={user._id ? user._id : user.id ?? ""}
-                      fetchUsers={fetchUsers}
-                      trigger={
-                        <Button variant="ghost" size="icon">
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-5 w-5"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                            stroke="currentColor"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
-                            />
-                          </svg>
-                        </Button>
-                      }
-                    />
+                    {user.role !== "super_admin" && (
+                      <DeleteUserAlert
+                        userName={user.name}
+                        userId={user._id ? user._id : user.id ?? ""}
+                        fetchUsers={fetchUsers}
+                        trigger={
+                          <Button variant="ghost" size="icon">
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-5 w-5"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
+                              />
+                            </svg>
+                          </Button>
+                        }
+                      />
+                    )}
                   </div>
                 </div>
               </div>

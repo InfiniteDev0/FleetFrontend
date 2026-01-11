@@ -24,8 +24,8 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import Link from "next/link";
-import { useSuperAdmin } from "@/app/client/super-admin/context/SuperAdminContext";
 import { Button } from "@/components/ui/button";
+import { useSuperAdmin } from "@/app/context/SuperAdminContext";
 
 const navMain = [
   { title: "Dashboard", icon: LayoutDashboard },

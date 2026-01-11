@@ -58,7 +58,7 @@ import { SelectContent } from "@/components/ui/select";
 import { SelectItem } from "@/components/ui/select";
 
 import { Eye, GripVertical, MoreHorizontal, Trash2 } from "lucide-react";
-import { useSuperAdmin } from "@/app/client/super-admin/context/SuperAdminContext";
+import { useSuperAdmin } from "@/app/context/SuperAdminContext";
 
 import {
   IconChevronsLeft,
@@ -72,6 +72,7 @@ import {
   IconAlertTriangle,
   IconQuestionMark,
 } from "@tabler/icons-react";
+import { AlertDialog } from "@/components/ui/alert-dialog";
 
 export const truckSchema = z.object({
   id: z.string().or(z.number()),
@@ -313,23 +314,25 @@ function getColumns(fetchTrucks?: () => Promise<void>) {
             <DropdownMenuSeparator className="my-1" />
 
             {/* Delete Truck */}
-            <DeleteTruckAlert
-              trigger={
-                <DropdownMenuItem className="px-2 py-2 flex items-center gap-2 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-sm cursor-pointer">
-                  <Trash2 className="size-4 text-red-600" />
-                  <span>Delete Truck</span>
-                </DropdownMenuItem>
-              }
-            >
-              {(close) => (
-                <DeleteTruckDialog
-                  plateNumber={row.original.plateNumber}
-                  truckId={row.original.id}
-                  fetchTrucks={fetchTrucks}
-                  onSuccess={close}
-                />
-              )}
-            </DeleteTruckAlert>
+            {row.original.status !== "in-use" && (
+              <DeleteTruckAlert
+                trigger={
+                  <DropdownMenuItem className="px-2 py-2 flex items-center gap-2 text-red-600 hover:bg-red-100 hover:text-red-700 rounded-sm cursor-pointer">
+                    <Trash2 className="size-4 text-red-600" />
+                    <span>Delete Truck</span>
+                  </DropdownMenuItem>
+                }
+              >
+                {(close) => (
+                  <DeleteTruckDialog
+                    plateNumber={row.original.plateNumber}
+                    truckId={row.original.id}
+                    fetchTrucks={fetchTrucks}
+                    onSuccess={close}
+                  />
+                )}
+              </DeleteTruckAlert>
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       ),
@@ -386,7 +389,6 @@ import {
 
 import { Separator } from "./ui/separator";
 import Link from "next/link";
-import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 export function TrucksDataTable({
   data,
@@ -603,8 +605,8 @@ export function TrucksDataTable({
                       </p>
                     </div>
                     <div className="flex items-center !gap-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
+                      <div>
+                        <div>
                           <Link
                             href={`/client/super-admin/trucks/${encodeURIComponent(
                               truck.plateNumber
@@ -619,34 +621,49 @@ export function TrucksDataTable({
                             <Eye className="size-4 text-muted-foreground" />
                             <span className="sr-only">View Truck</span>
                           </Link>
-                        </TooltipTrigger>
-                        <TooltipContent>View</TooltipContent>
-                      </Tooltip>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => setShowDelete(true)}
+                        </div>
+                      </div>
+                      {/* Only show delete button if truck is NOT in-use */}
+                      {truck.status !== "in-use" && (
+                        <>
+                          <div>
+                            <div>
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                onClick={() => setShowDelete(true)}
+                              >
+                                <svg
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  className="h-5 w-5"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
+                                  />
+                                </svg>
+                              </Button>
+                            </div>
+                          </div>
+                          {/* Wrap dialog in AlertDialog */}
+                          <AlertDialog
+                            open={showDelete}
+                            onOpenChange={setShowDelete}
                           >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              className="h-5 w-5"
-                              fill="none"
-                              viewBox="0 0 24 24"
-                              stroke="currentColor"
-                            >
-                              <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6M1 7h22M8 7V5a2 2 0 012-2h4a2 2 0 012 2v2"
-                              />
-                            </svg>
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Delete</TooltipContent>
-                      </Tooltip>
+                            <DeleteTruckDialog
+                              plateNumber={truck.plateNumber}
+                              truckId={truck.id}
+                              fetchTrucks={fetchTrucks}
+                              onSuccess={() => setShowDelete(false)}
+                            />
+                          </AlertDialog>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

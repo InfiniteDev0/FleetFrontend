@@ -16,7 +16,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useSuperAdmin } from "@/app/client/super-admin/context/SuperAdminContext";
+
 import {
   Select,
   SelectTrigger,
@@ -25,6 +25,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { useSuperAdmin } from "@/app/context/SuperAdminContext";
 
 // Helper: trend color
 function getTrendColor(value: number) {
@@ -35,7 +36,7 @@ function getTrendColor(value: number) {
 
 export function SectionCards() {
   const { trucks, trips, loading } = useSuperAdmin();
-  const [period, setPeriod] = React.useState("today");
+  const [period, setPeriod] = React.useState("month");
 
   // Helper: get start of week/month/year
   function startOf(period: string, date: Date) {
@@ -112,11 +113,6 @@ export function SectionCards() {
         return end >= yearStart && end <= now;
       });
     }
-    // Debug: log filtered trips for revenue
-    if (typeof window !== "undefined") {
-      // eslint-disable-next-line no-console
-      console.log("[RevenueCard] Filtered completed trips:", filteredTrips);
-    }
     // Net profit = transport (already net profit for completed trips)
     const netProfit = filteredTrips.reduce((sum: number, trip: any) => {
       return sum + Number(trip.transport);
@@ -140,7 +136,12 @@ export function SectionCards() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 !px-4 lg:px-6 xl:grid-cols-2 5xl:grid-cols-4 items-stretch">
+    <div className="grid grid-cols-1 gap-4 !px-4 lg:px-6 xl:grid-cols-2 5xl:grid-cols-4  
+    *:data-[slot=card]:bg-gradient-to-t
+    *:data-[slot=card]:from-primary/5
+    *:data-[slot=card]:to-card
+    dark:*:data-[slot=card]:bg-card
+   items-stretch">
       {/* Total Trucks */}
       <Card className="shadow-none">
         <CardHeader>

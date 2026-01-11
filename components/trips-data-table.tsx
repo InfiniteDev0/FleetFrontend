@@ -53,7 +53,6 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { useSuperAdmin } from "@/app/client/super-admin/context/SuperAdminContext";
 import { z } from "zod";
 import {
   useReactTable,
@@ -94,6 +93,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { useTripsForDate } from "@/app/hooks/useFleetData";
 import Link from "next/link";
+import { useSuperAdmin } from "@/app/context/SuperAdminContext";
+import { AlertDialog } from "@/components/ui/alert-dialog";
 
 export const tripSchema = z.object({
   id: z.string().optional(), // frontend convenience, maps to _id
@@ -423,6 +424,15 @@ const columns: ColumnDef<z.infer<typeof tripSchema>>[] = [
   },
 ];
 
+// Helper to sort trips: in-progress first, then others
+function sortTrips(trips: z.infer<typeof tripSchema>[]) {
+  return [...(trips || [])].sort((a, b) => {
+    if (a.status === "in-progress" && b.status !== "in-progress") return -1;
+    if (a.status !== "in-progress" && b.status === "in-progress") return 1;
+    return 0;
+  });
+}
+
 function DraggableRow({ row }: { row: Row<z.infer<typeof tripSchema>> }) {
   const { transform, transition, setNodeRef, isDragging } = useSortable({
     id: String(row.original.id ?? row.original._id ?? ""),
@@ -553,16 +563,18 @@ export function DataTable({
 
   // If initialData is provided and non-empty, use it; otherwise, always use providerTrips
   const [data, setData] = React.useState<z.infer<typeof tripSchema>[]>(() => {
-    if (initialData && initialData.length) return initialData;
-    return providerTrips as unknown as z.infer<typeof tripSchema>[];
+    if (initialData && initialData.length) return sortTrips(initialData);
+    return sortTrips(providerTrips as unknown as z.infer<typeof tripSchema>[]);
   });
 
   // Keep data in sync with providerTrips unless initialData is provided and non-empty
   React.useEffect(() => {
     if (initialData && initialData.length) {
-      setData(initialData);
+      setData(sortTrips(initialData));
     } else {
-      setData(providerTrips as unknown as z.infer<typeof tripSchema>[]);
+      setData(
+        sortTrips(providerTrips as unknown as z.infer<typeof tripSchema>[])
+      );
     }
   }, [initialData, providerTrips]);
   const [rowSelection, setRowSelection] = React.useState({});
@@ -861,8 +873,8 @@ export function DataTable({
                       {/* Actions: view, delete, complete (if not completed) */}
                       <div className="flex flex-row gap-2 mt-auto">
                         {/* View button with Tooltip */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
+                        <div>
+                          <div>
                             <Link
                               href={`/client/super-admin/trips/${encodeURIComponent(
                                 tripId
@@ -893,12 +905,11 @@ export function DataTable({
                                 </svg>
                               </Button>
                             </Link>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">View Trip</TooltipContent>
-                        </Tooltip>
+                          </div>
+                        </div>
                         {/* Delete button with Tooltip and dialog */}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
+                        <div>
+                          <div>
                             <Button
                               size="icon"
                               variant="ghost"
@@ -920,11 +931,8 @@ export function DataTable({
                                 />
                               </svg>
                             </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side="top">
-                            Delete Trip
-                          </TooltipContent>
-                        </Tooltip>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </Card>
@@ -1015,11 +1023,16 @@ export function DataTable({
       </div>
       {/* Delete dialog for mobile cards */}
       {deleteDialogTripId && (
-        <DeleteTripDialog
-          refNumber={deleteDialogTripId}
-          tripId={deleteDialogTripId}
-          onSuccess={() => setDeleteDialogTripId(null)}
-        />
+        <AlertDialog
+          open={!!deleteDialogTripId}
+          onOpenChange={(open) => !open && setDeleteDialogTripId(null)}
+        >
+          <DeleteTripDialog
+            refNumber={deleteDialogTripId}
+            tripId={deleteDialogTripId}
+            onSuccess={() => setDeleteDialogTripId(null)}
+          />
+        </AlertDialog>
       )}
     </div>
   );

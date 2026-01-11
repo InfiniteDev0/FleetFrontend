@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
-import { useSuperAdmin } from "@/app/client/super-admin/context/SuperAdminContext";
-import {
+import{
   useReactTable,
   getCoreRowModel,
   flexRender,
@@ -50,6 +49,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { useSuperAdmin } from "../app/context/SuperAdminContext";
 
 const AddExpenseForm = dynamic(
   () => import("../app/client/super-admin/components/forms/AddExpenseFrom"),

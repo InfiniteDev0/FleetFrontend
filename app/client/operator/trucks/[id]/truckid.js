@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
+import { useSuperAdmin } from "../../../../context/SuperAdminContext";
 import {
   Card,
   CardHeader,
@@ -40,6 +41,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+} from "@/components/ui/dropdown-menu";
+import { Eye } from "lucide-react";
+import {
+  IconCalendar,
   IconCircleCheckFilled,
   IconDeviceFloppy,
   IconLoader,
@@ -48,12 +59,13 @@ import {
   IconAlertTriangle,
   IconQuestionMark,
 } from "@tabler/icons-react";
+import { CirclePause, CirclePlay, MoveDown } from "lucide-react";
 import { toast } from "sonner";
-import { useSuperAdmin } from "../../../../context/SuperAdminContext";
+import TripsListCards from "../../../../../components/trips-listCards";
 
 const PopoverDemo = dynamic(
   () =>
-    import("../../components/DriverListPopup").then((mod) => ({
+    import("../../../../../components/DriverListPopup").then((mod) => ({
       default: mod.PopoverDemo,
     })),
   {
@@ -268,81 +280,72 @@ const Truckpage = () => {
   return (
     <div className="!p-3 md:!p-6 !space-y-6 min-h-[calc(100vh-64px)]">
       {/* 1️⃣ Header: Truck Identity & Actions */}
-      <div
-        className="
-    *:data-[slot=card]:bg-gradient-to-t
-    *:data-[slot=card]:from-primary/5
-    *:data-[slot=card]:to-card
-    dark:*:data-[slot=card]:bg-card
-  "
-      >
-        <Card className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 !p-6 sticky top-0 z-10">
-          <div>
-            <div className="flex items-center gap-3">
-              <img
-                src="https://png.pngtree.com/png-vector/20231023/ourmid/pngtree-3d-illustration-of-tanker-truck-png-image_10312658.png"
-                alt=""
-                className="w-15"
-              />
-              <p className="text-sm md:text-xl">
-                {" "}
-                <span>{truck.plateNumber}</span>
-                <span>
-                  — {truck.model} ({truck.year || "-"})
-                </span>
-              </p>
-            </div>
+      <Card className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 !p-6 sticky top-0 z-10">
+        <div>
+          <div className="flex items-center gap-3">
+            <img
+              src="https://png.pngtree.com/png-vector/20231023/ourmid/pngtree-3d-illustration-of-tanker-truck-png-image_10312658.png"
+              alt=""
+              className="w-15"
+            />
+            <p className="text-sm md:text-xl">
+              {" "}
+              <span>{truck.plateNumber}</span>
+              <span>
+                — {truck.model} ({truck.year || "-"})
+              </span>
+            </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {(role === "admin" || role === "super_admin") && (
-              <>
-                <Button size="sm" variant="outline">
-                  Send to Maintenance
-                </Button>
-              </>
-            )}
-            {role === "operator" && (
-              <>
-                <Button size="sm" variant="outline">
-                  Start Trip
-                </Button>
-                <Button size="sm" variant="outline">
-                  End Trip
-                </Button>
-              </>
-            )}
-            <Badge
-              variant="outline"
-              className={`!ml-2 px-1.5 flex items-center gap-1 ${
-                truck.status === "available"
-                  ? "text-green-600 dark:text-green-400"
-                  : truck.status === "in-use"
-                  ? "text-blue-600 dark:text-blue-400"
-                  : truck.status === "maintenance"
-                  ? "text-yellow-600 dark:text-yellow-400"
-                  : "text-gray-500 dark:text-gray-400"
-              }`}
-            >
-              {truck.status === "available" ? (
-                <IconCircleCheckFilled className="size-4 fill-green-500 dark:fill-green-400" />
-              ) : truck.status === "in-use" ? (
-                <IconLoader className="size-4 animate-spin text-blue-500 dark:text-blue-400" />
-              ) : truck.status === "maintenance" ? (
-                <IconAlertTriangle className="size-4 text-yellow-500 dark:text-yellow-400" />
-              ) : (
-                <IconQuestionMark className="size-4 text-gray-400" />
-              )}
-              {truck.status === "in-use"
-                ? "In Use"
-                : truck.status === "available"
-                ? "Available"
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {(role === "admin" || role === "super_admin") && (
+            <>
+              <Button size="sm" variant="outline">
+                Send to Maintenance
+              </Button>
+            </>
+          )}
+          {role === "operator" && (
+            <>
+              <Button size="sm" variant="outline">
+                Start Trip
+              </Button>
+              <Button size="sm" variant="outline">
+                End Trip
+              </Button>
+            </>
+          )}
+          <Badge
+            variant="outline"
+            className={`!ml-2 px-1.5 flex items-center gap-1 ${
+              truck.status === "available"
+                ? "text-green-600 dark:text-green-400"
+                : truck.status === "in-use"
+                ? "text-blue-600 dark:text-blue-400"
                 : truck.status === "maintenance"
-                ? "Maintenance"
-                : truck.status}
-            </Badge>
-          </div>
-        </Card>
-      </div>
+                ? "text-yellow-600 dark:text-yellow-400"
+                : "text-gray-500 dark:text-gray-400"
+            }`}
+          >
+            {truck.status === "available" ? (
+              <IconCircleCheckFilled className="size-4 fill-green-500 dark:fill-green-400" />
+            ) : truck.status === "in-use" ? (
+              <IconLoader className="size-4 animate-spin text-blue-500 dark:text-blue-400" />
+            ) : truck.status === "maintenance" ? (
+              <IconAlertTriangle className="size-4 text-yellow-500 dark:text-yellow-400" />
+            ) : (
+              <IconQuestionMark className="size-4 text-gray-400" />
+            )}
+            {truck.status === "in-use"
+              ? "In Use"
+              : truck.status === "available"
+              ? "Available"
+              : truck.status === "maintenance"
+              ? "Maintenance"
+              : truck.status}
+          </Badge>
+        </div>
+      </Card>
 
       {/* 2️⃣ Status Snapshot */}
       <div
@@ -681,6 +684,14 @@ const Truckpage = () => {
             <TabsTrigger value="expenses" className="flex-shrink-0">
               Expenses & Maintenance
             </TabsTrigger>
+            <TabsTrigger value="documents" className="flex-shrink-0">
+              Documents
+            </TabsTrigger>
+            {(role === "admin" || role === "super_admin") && (
+              <TabsTrigger value="activity" className="flex-shrink-0">
+                Activity Log
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 

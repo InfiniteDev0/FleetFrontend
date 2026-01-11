@@ -25,8 +25,8 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog";
-import { useSuperAdmin } from "@/app/client/super-admin/context/SuperAdminContext";
 import { toast } from "sonner";
+import { useSuperAdmin } from "../app/context/SuperAdminContext";
 
 export function StatusBadge({ status }) {
   let icon = null;
