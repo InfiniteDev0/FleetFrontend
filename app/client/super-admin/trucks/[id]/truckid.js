@@ -12,6 +12,14 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 
 const DataTable = dynamic(
   () =>
@@ -84,6 +92,7 @@ const Truckpage = () => {
     fetchTrips,
     trucks = [],
     users = [],
+    fetchExpensesByTrip,
   } = useSuperAdmin();
   const [truck, setTruck] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -199,6 +208,55 @@ const Truckpage = () => {
         );
       })
       .reduce((sum, t) => sum + (Number(t.transport) || 0), 0);
+  }, [trips, truck]);
+
+  // State for total expenses
+  const [totalTruckExpenses, setTotalTruckExpenses] = useState(0);
+
+  // Add state for all expenses for this truck
+  const [truckExpensesList, setTruckExpensesList] = useState([]);
+
+  // Calculate total expenses for all trips of this truck
+  React.useEffect(() => {
+    async function calcTotalExpenses() {
+      if (!truck) {
+        setTotalTruckExpenses(0);
+        setTruckExpensesList([]);
+        return;
+      }
+      // Filter trips for this truck
+      const truckTrips = (trips || []).filter((t) => {
+        const truckRaw = (t && t.truckId) || null;
+        const truckObj =
+          truckRaw && typeof truckRaw === "object" ? truckRaw : null;
+        const truckIdStr = truckObj?._id || truckRaw;
+        return String(truckIdStr) === String(truck._id || truck.id);
+      });
+
+      // Fetch expenses for each trip and sum them, also collect all expenses
+      let total = 0;
+      let allExpenses = [];
+      for (const trip of truckTrips) {
+        try {
+          // Use context's fetchExpensesByTrip
+          const expenses = await fetchExpensesByTrip?.(trip._id || trip.id);
+          if (expenses && Array.isArray(expenses)) {
+            total += expenses.reduce(
+              (sum, exp) => sum + (Number(exp.amount) || 0),
+              0
+            );
+            // Attach trip info if needed
+            allExpenses = allExpenses.concat(expenses);
+          }
+        } catch {
+          // ignore errors for individual trips
+        }
+      }
+      setTotalTruckExpenses(total);
+      setTruckExpensesList(allExpenses);
+    }
+    calcTotalExpenses();
+    // Only recalc when trips or truck change
   }, [trips, truck]);
 
   if (loading) {
@@ -798,7 +856,83 @@ const Truckpage = () => {
 
         <TabsContent value="expenses">
           <Card className="!p-4 !mb-4">
-            Expenses & Maintenance logs go here
+            <div className="mb-2 font-semibold text-lg">
+              Total Expenses for this Truck:{" "}
+              <span className="text-red-600">
+                $
+                {totalTruckExpenses.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+            {/* Expenses Table for all trips of this truck */}
+            <div className="overflow-x-auto">
+              <Table className="text-sm border rounded-lg">
+                <TableHeader className="bg-muted">
+                  <TableRow>
+                    <TableHead className="!px-3 !py-2 text-left font-semibold">
+                      Payment
+                    </TableHead>
+                    <TableHead className="!px-3 !py-2 text-left font-semibold">
+                      Rate
+                    </TableHead>
+                    <TableHead className="!px-3 !py-2 text-left font-semibold">
+                      Amount
+                    </TableHead>
+                    <TableHead className="!px-3 !py-2 text-left font-semibold">
+                      Description
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {truckExpensesList && truckExpensesList.length > 0 ? (
+                    truckExpensesList.map((exp, idx) => (
+                      <TableRow
+                        key={exp.id || exp._id || idx}
+                        className="border-b last:border-b-0"
+                      >
+                        <TableCell className="!px-3 !py-2 font-semibold text-foreground">
+                          {Number(exp.Payment).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="!px-3 !py-2">
+                          <Badge variant="secondary" className="font-mono">
+                            {Number(exp.rate).toFixed(2)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="!px-3 !py-2">
+                          <Badge
+                            variant="destructive"
+                            className="font-semibold"
+                          >
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: "USD",
+                            }).format(Number(exp.amount))}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="!px-3 !py-2 text-muted-foreground text-xs">
+                          {exp.reason || (
+                            <span className="italic opacity-50">
+                              No description
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="text-center text-muted-foreground py-4"
+                      >
+                        No expenses found for this truck.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>

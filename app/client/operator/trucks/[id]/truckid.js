@@ -2,7 +2,6 @@
 import React, { useState } from "react";
 import { useSearchParams, usePathname } from "next/navigation";
 import dynamic from "next/dynamic";
-import { useSuperAdmin } from "../../../../context/SuperAdminContext";
 import {
   Card,
   CardHeader,
@@ -13,6 +12,14 @@ import {
   CardFooter,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 
 const DataTable = dynamic(
   () =>
@@ -41,16 +48,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuTrigger,
-  DropdownMenuContent,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu";
-import { Eye } from "lucide-react";
-import {
-  IconCalendar,
   IconCircleCheckFilled,
   IconDeviceFloppy,
   IconLoader,
@@ -59,20 +56,10 @@ import {
   IconAlertTriangle,
   IconQuestionMark,
 } from "@tabler/icons-react";
-import { CirclePause, CirclePlay, MoveDown } from "lucide-react";
 import { toast } from "sonner";
-import TripsListCards from "../../../../../components/trips-listCards";
+import { useSuperAdmin } from "../../../../context/SuperAdminContext";
 
-const PopoverDemo = dynamic(
-  () =>
-    import("../../../../../components/DriverListPopup").then((mod) => ({
-      default: mod.PopoverDemo,
-    })),
-  {
-    loading: () => <div className="loader"></div>,
-    ssr: false,
-  }
-);
+
 
 const Truckpage = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -96,6 +83,7 @@ const Truckpage = () => {
     fetchTrips,
     trucks = [],
     users = [],
+    fetchExpensesByTrip,
   } = useSuperAdmin();
   const [truck, setTruck] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -213,6 +201,55 @@ const Truckpage = () => {
       .reduce((sum, t) => sum + (Number(t.transport) || 0), 0);
   }, [trips, truck]);
 
+  // State for total expenses
+  const [totalTruckExpenses, setTotalTruckExpenses] = useState(0);
+
+  // Add state for all expenses for this truck
+  const [truckExpensesList, setTruckExpensesList] = useState([]);
+
+  // Calculate total expenses for all trips of this truck
+  React.useEffect(() => {
+    async function calcTotalExpenses() {
+      if (!truck) {
+        setTotalTruckExpenses(0);
+        setTruckExpensesList([]);
+        return;
+      }
+      // Filter trips for this truck
+      const truckTrips = (trips || []).filter((t) => {
+        const truckRaw = (t && t.truckId) || null;
+        const truckObj =
+          truckRaw && typeof truckRaw === "object" ? truckRaw : null;
+        const truckIdStr = truckObj?._id || truckRaw;
+        return String(truckIdStr) === String(truck._id || truck.id);
+      });
+
+      // Fetch expenses for each trip and sum them, also collect all expenses
+      let total = 0;
+      let allExpenses = [];
+      for (const trip of truckTrips) {
+        try {
+          // Use context's fetchExpensesByTrip
+          const expenses = await fetchExpensesByTrip?.(trip._id || trip.id);
+          if (expenses && Array.isArray(expenses)) {
+            total += expenses.reduce(
+              (sum, exp) => sum + (Number(exp.amount) || 0),
+              0
+            );
+            // Attach trip info if needed
+            allExpenses = allExpenses.concat(expenses);
+          }
+        } catch {
+          // ignore errors for individual trips
+        }
+      }
+      setTotalTruckExpenses(total);
+      setTruckExpensesList(allExpenses);
+    }
+    calcTotalExpenses();
+    // Only recalc when trips or truck change
+  }, [trips, truck]);
+
   if (loading) {
     // Try to get the plate number from the URL or truck object
     let loadingPlate = plateNumber;
@@ -280,72 +317,81 @@ const Truckpage = () => {
   return (
     <div className="!p-3 md:!p-6 !space-y-6 min-h-[calc(100vh-64px)]">
       {/* 1️⃣ Header: Truck Identity & Actions */}
-      <Card className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 !p-6 sticky top-0 z-10">
-        <div>
-          <div className="flex items-center gap-3">
-            <img
-              src="https://png.pngtree.com/png-vector/20231023/ourmid/pngtree-3d-illustration-of-tanker-truck-png-image_10312658.png"
-              alt=""
-              className="w-15"
-            />
-            <p className="text-sm md:text-xl">
-              {" "}
-              <span>{truck.plateNumber}</span>
-              <span>
-                — {truck.model} ({truck.year || "-"})
-              </span>
-            </p>
+      <div
+        className="
+    *:data-[slot=card]:bg-gradient-to-t
+    *:data-[slot=card]:from-primary/5
+    *:data-[slot=card]:to-card
+    dark:*:data-[slot=card]:bg-card
+  "
+      >
+        <Card className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 !p-6 sticky top-0 z-10">
+          <div>
+            <div className="flex items-center gap-3">
+              <img
+                src="https://png.pngtree.com/png-vector/20231023/ourmid/pngtree-3d-illustration-of-tanker-truck-png-image_10312658.png"
+                alt=""
+                className="w-15"
+              />
+              <p className="text-sm md:text-xl">
+                {" "}
+                <span>{truck.plateNumber}</span>
+                <span>
+                  — {truck.model} ({truck.year || "-"})
+                </span>
+              </p>
+            </div>
           </div>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {(role === "admin" || role === "super_admin") && (
-            <>
-              <Button size="sm" variant="outline">
-                Send to Maintenance
-              </Button>
-            </>
-          )}
-          {role === "operator" && (
-            <>
-              <Button size="sm" variant="outline">
-                Start Trip
-              </Button>
-              <Button size="sm" variant="outline">
-                End Trip
-              </Button>
-            </>
-          )}
-          <Badge
-            variant="outline"
-            className={`!ml-2 px-1.5 flex items-center gap-1 ${
-              truck.status === "available"
-                ? "text-green-600 dark:text-green-400"
-                : truck.status === "in-use"
-                ? "text-blue-600 dark:text-blue-400"
-                : truck.status === "maintenance"
-                ? "text-yellow-600 dark:text-yellow-400"
-                : "text-gray-500 dark:text-gray-400"
-            }`}
-          >
-            {truck.status === "available" ? (
-              <IconCircleCheckFilled className="size-4 fill-green-500 dark:fill-green-400" />
-            ) : truck.status === "in-use" ? (
-              <IconLoader className="size-4 animate-spin text-blue-500 dark:text-blue-400" />
-            ) : truck.status === "maintenance" ? (
-              <IconAlertTriangle className="size-4 text-yellow-500 dark:text-yellow-400" />
-            ) : (
-              <IconQuestionMark className="size-4 text-gray-400" />
+          <div className="flex flex-wrap gap-2">
+            {(role === "admin" || role === "super_admin") && (
+              <>
+                <Button size="sm" variant="outline">
+                  Send to Maintenance
+                </Button>
+              </>
             )}
-            {truck.status === "in-use"
-              ? "In Use"
-              : truck.status === "available"
-              ? "Available"
-              : truck.status === "maintenance"
-              ? "Maintenance"
-              : truck.status}
-          </Badge>
-        </div>
-      </Card>
+            {role === "operator" && (
+              <>
+                <Button size="sm" variant="outline">
+                  Start Trip
+                </Button>
+                <Button size="sm" variant="outline">
+                  End Trip
+                </Button>
+              </>
+            )}
+            <Badge
+              variant="outline"
+              className={`!ml-2 px-1.5 flex items-center gap-1 ${
+                truck.status === "available"
+                  ? "text-green-600 dark:text-green-400"
+                  : truck.status === "in-use"
+                  ? "text-blue-600 dark:text-blue-400"
+                  : truck.status === "maintenance"
+                  ? "text-yellow-600 dark:text-yellow-400"
+                  : "text-gray-500 dark:text-gray-400"
+              }`}
+            >
+              {truck.status === "available" ? (
+                <IconCircleCheckFilled className="size-4 fill-green-500 dark:fill-green-400" />
+              ) : truck.status === "in-use" ? (
+                <IconLoader className="size-4 animate-spin text-blue-500 dark:text-blue-400" />
+              ) : truck.status === "maintenance" ? (
+                <IconAlertTriangle className="size-4 text-yellow-500 dark:text-yellow-400" />
+              ) : (
+                <IconQuestionMark className="size-4 text-gray-400" />
+              )}
+              {truck.status === "in-use"
+                ? "In Use"
+                : truck.status === "available"
+                ? "Available"
+                : truck.status === "maintenance"
+                ? "Maintenance"
+                : truck.status}
+            </Badge>
+          </div>
+        </Card>
+      </div>
 
       {/* 2️⃣ Status Snapshot */}
       <div
@@ -684,14 +730,6 @@ const Truckpage = () => {
             <TabsTrigger value="expenses" className="flex-shrink-0">
               Expenses & Maintenance
             </TabsTrigger>
-            <TabsTrigger value="documents" className="flex-shrink-0">
-              Documents
-            </TabsTrigger>
-            {(role === "admin" || role === "super_admin") && (
-              <TabsTrigger value="activity" className="flex-shrink-0">
-                Activity Log
-              </TabsTrigger>
-            )}
           </TabsList>
         </div>
 
@@ -809,7 +847,83 @@ const Truckpage = () => {
 
         <TabsContent value="expenses">
           <Card className="!p-4 !mb-4">
-            Expenses & Maintenance logs go here
+            <div className="mb-2 font-semibold text-lg">
+              Total Expenses for this Truck:{" "}
+              <span className="text-red-600">
+                $
+                {totalTruckExpenses.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
+              </span>
+            </div>
+            {/* Expenses Table for all trips of this truck */}
+            <div className="overflow-x-auto">
+              <Table className="text-sm border rounded-lg">
+                <TableHeader className="bg-muted">
+                  <TableRow>
+                    <TableHead className="!px-3 !py-2 text-left font-semibold">
+                      Payment
+                    </TableHead>
+                    <TableHead className="!px-3 !py-2 text-left font-semibold">
+                      Rate
+                    </TableHead>
+                    <TableHead className="!px-3 !py-2 text-left font-semibold">
+                      Amount
+                    </TableHead>
+                    <TableHead className="!px-3 !py-2 text-left font-semibold">
+                      Description
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {truckExpensesList && truckExpensesList.length > 0 ? (
+                    truckExpensesList.map((exp, idx) => (
+                      <TableRow
+                        key={exp.id || exp._id || idx}
+                        className="border-b last:border-b-0"
+                      >
+                        <TableCell className="!px-3 !py-2 font-semibold text-foreground">
+                          {Number(exp.Payment).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="!px-3 !py-2">
+                          <Badge variant="secondary" className="font-mono">
+                            {Number(exp.rate).toFixed(2)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="!px-3 !py-2">
+                          <Badge
+                            variant="destructive"
+                            className="font-semibold"
+                          >
+                            {new Intl.NumberFormat("en-US", {
+                              style: "currency",
+                              currency: "USD",
+                            }).format(Number(exp.amount))}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="!px-3 !py-2 text-muted-foreground text-xs">
+                          {exp.reason || (
+                            <span className="italic opacity-50">
+                              No description
+                            </span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="text-center text-muted-foreground py-4"
+                      >
+                        No expenses found for this truck.
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </Card>
         </TabsContent>
       </Tabs>

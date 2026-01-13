@@ -50,7 +50,6 @@ const TripCompleteDataSubmitform = ({
         ...trip,
         endTime: new Date(endTime).toISOString(),
         status: "completed",
-        transport: netProfit,
       });
       toast.success("Trip completed successfully!");
     } catch (error) {
@@ -144,7 +143,7 @@ const TripCompleteDataSubmitform = ({
 
         autoTable(doc, {
           startY: finalY + 4,
-          head: [["Payment (L)", "Rate", "Amount", "Description"]],
+          head: [["Payment", "Rate", "Amount", "Description"]],
           body: expenseRows,
           theme: "grid",
           styles: { fontSize: 9, cellPadding: 3 },
@@ -421,7 +420,7 @@ const TripCompleteDataSubmitform = ({
                 <thead className="bg-muted">
                   <tr>
                     <th className="text-left !p-2 text-xs font-semibold">
-                      Payment (L)
+                      Payment
                     </th>
                     <th className="text-left !p-2 text-xs font-semibold">
                       Rate
@@ -438,10 +437,10 @@ const TripCompleteDataSubmitform = ({
                   {expenses.map((expense, index) => (
                     <tr key={expense.id || index} className="border-t">
                       <td className="!p-2 font-medium">
-                        {Number(expense.Payment || 0).toLocaleString()} L
+                        {Number(expense.Payment || 0).toLocaleString()}
                       </td>
                       <td className="!p-2">
-                        ${Number(expense.rate || 0).toFixed(2)}/L
+                        ${Number(expense.rate || 0).toFixed(2)}
                       </td>
                       <td className="!p-2 font-semibold text-red-600">
                         ${Number(expense.amount || 0).toLocaleString()}

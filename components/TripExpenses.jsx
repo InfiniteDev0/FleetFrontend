@@ -259,7 +259,7 @@ const TripExpenses = ({
     },
     {
       accessorKey: "Payment",
-      header: () => <span className="font-semibold">Payment (L)</span>,
+      header: () => <span className="font-semibold">Payment</span>,
       cell: ({ row }) => (
         <div className="font-semibold text-foreground">
           {Number(row.getValue("Payment")).toLocaleString()} L
@@ -272,7 +272,7 @@ const TripExpenses = ({
       header: () => <span className="font-semibold">Rate</span>,
       cell: ({ row }) => (
         <Badge variant="secondary" className="font-mono">
-          ${Number(row.getValue("rate")).toFixed(2)}/L
+          ${Number(row.getValue("rate")).toFixed(2)}
         </Badge>
       ),
       size: 120,

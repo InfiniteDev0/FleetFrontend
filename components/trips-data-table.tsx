@@ -393,10 +393,8 @@ const columns: ColumnDef<z.infer<typeof tripSchema>>[] = [
           >
             <DropdownMenuItem asChild>
               <Link
-                href={`/client/${currentRole}/trips/${encodeURIComponent(
-                  String(row.original.id ?? (row.original._id || ""))
-                )}?id=${encodeURIComponent(
-                  String(row.original.id ?? (row.original._id || ""))
+                href={`/client/${currentRole === "super_admin" ? "super-admin" : currentRole}/trips/${encodeURIComponent(
+                  String(row.original.id ?? row.original._id ?? "")
                 )}`}
               >
                 <IconEye className="mr-2 size-4 text-muted-foreground" />
@@ -882,9 +880,11 @@ export function DataTable({
                         <div>
                           <div>
                             <Link
-                              href={`/client/${currentRole}/trips/${encodeURIComponent(
-                                tripId
-                              )}?id=${encodeURIComponent(tripId)}`}
+                              href={`/client/${
+                                currentRole === "super_admin"
+                                  ? "super-admin"
+                                  : currentRole
+                              }/trips/${encodeURIComponent(tripId)}`}
                               passHref
                             >
                               <Button size="icon" variant="ghost">

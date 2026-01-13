@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState, useMemo } from "react";
-import { useParams, useSearchParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import { toast } from "sonner";
 import { jsPDF } from "jspdf";
@@ -281,13 +280,7 @@ function ExpensesDataTable({ data, onView, onRemove }) {
   );
 }
 
-export default function TripPage() {
-  const params = useParams();
-  const search = useSearchParams();
-  const idFromParams = params?.id;
-  const idFromQuery = search?.get("id");
-  const tripId = idFromParams || idFromQuery || "";
-
+export default function TripPage({ tripId }) {
   const {
     trips = [],
     trucks = [],
@@ -529,15 +522,15 @@ export default function TripPage() {
 
       if (tripExpenses && tripExpenses.length > 0) {
         const expenseRows = tripExpenses.map((expense) => [
-          `${Number(expense.Payment || 0).toLocaleString()} L`,
-          `$${Number(expense.rate || 0).toFixed(2)}/L`,
-          `$${Number(expense.amount || 0).toLocaleString()}`,
+          `${Number(expense.Payment || 0).toLocaleString()}`,
+          `${Number(expense.rate || 0).toFixed(2)}`,
+          `${Number(expense.amount || 0).toLocaleString()}$`,
           expense.reason || "No description",
         ]);
 
         autoTable(doc, {
           startY: finalY + 4,
-          head: [["Payment (L)", "Rate", "Amount", "Description"]],
+          head: [["Payment", "Rate", "Amount", "Description"]],
           body: expenseRows,
           theme: "grid",
           styles: { fontSize: 9, cellPadding: 3 },
@@ -663,7 +656,43 @@ export default function TripPage() {
             {/* Left side: Route info in one line */}
             <div className="flex items-center text-2xl font-bold tracking-wider">
               <span>{trip.route?.origin || "-"}</span>
-              <span className="mx-3 text-xl text-gray-500">→</span>
+              <span className="!mx-2 flex items-center">
+                <svg
+                  // ↓↓↓ Made the SVG smaller by reducing width/height ↓↓↓
+                  width="16" // was 6% → now fixed small px size
+                  height="12" // was 100% → now fixed small px size
+                  viewBox="0 0 22 12"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  preserveAspectRatio="xMidYMid meet"
+                >
+                  <path
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M3 7.28571C3.71008 7.28571 4.28571 6.71008 4.28571 6C4.28571 5.28992 3.71008 4.71429 3 4.71429C2.28992 4.71429 1.71429 5.28992 1.71429 6C1.71429 6.71008 2.28992 7.28571 3 7.28571ZM3 9C4.65685 9 6 7.65685 6 6C6 4.34315 4.65685 3 3 3C1.34315 3 0 4.34315 0 6C0 7.65685 1.34315 9 3 9Z"
+                    fill="#0046E0"
+                  />
+                  <g clipPath="url(#clip0_269_43946)">
+                    <path
+                      d="M15.5266 0L14 1.415L18.9467 6L14 10.585L15.5266 12L22 6L15.5266 0Z"
+                      fill="#0046E0"
+                    />
+                  </g>
+                  <rect x="8" y="5" width="2" height="2" fill="#0046E0" />
+                  <rect x="12" y="5" width="2" height="2" fill="#0046E0" />
+                  <defs>
+                    <clipPath id="clip0_269_43946">
+                      <rect
+                        width="8"
+                        height="12"
+                        fill="white"
+                        transform="translate(14)"
+                      />
+                    </clipPath>
+                  </defs>
+                </svg>
+              </span>
+
               <span>{trip.route?.destination || "-"}</span>
               <span className="!ml-4 text-sm text-muted-foreground">
                 {truck?.plateNumber || truck?.model

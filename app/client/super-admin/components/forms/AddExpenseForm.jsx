@@ -21,11 +21,26 @@ const AddExpenseForm = ({
   setFormData,
   handleAddExpense,
 }) => {
+  const [submitting, setSubmitting] = React.useState(false);
+
+  // Wrap handleAddExpense to control submitting state
+  const handleSubmit = async (e) => {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await handleAddExpense(e);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="!pt-3 border-t !mt-2">
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
-          <Button className="w-full">Add Expense</Button>
+          <Button className="w-full" disabled={submitting}>
+            Add Expense
+          </Button>
         </DialogTrigger>
 
         <DialogContent className="max-w-md">
@@ -36,7 +51,7 @@ const AddExpenseForm = ({
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleAddExpense} className="!space-y-4">
+          <form onSubmit={handleSubmit} className="!space-y-4">
             <div>
               <Label htmlFor="Payment">Payment</Label>
               <Input
@@ -95,8 +110,8 @@ const AddExpenseForm = ({
             </div>
 
             <DialogFooter>
-              <Button type="submit" className="w-full">
-                Add Expense
+              <Button type="submit" className="w-full" disabled={submitting}>
+                {submitting ? "Adding..." : "Add Expense"}
               </Button>
             </DialogFooter>
           </form>

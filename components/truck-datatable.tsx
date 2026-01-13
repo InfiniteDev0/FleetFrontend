@@ -300,7 +300,9 @@ function getColumns(fetchTrucks?: () => Promise<void>, currentRole?: string) {
               className="px-2 py-2 flex items-center gap-2 rounded-sm hover:bg-accent hover:text-accent-foreground cursor-pointer"
             >
               <Link
-                href={`/client/${currentRole}/trucks/${encodeURIComponent(
+                href={`/client/${
+                  currentRole === "super_admin" ? "super-admin" : currentRole
+                }/trucks/${encodeURIComponent(
                   row.original.plateNumber
                 )}?id=${encodeURIComponent(
                   row.original.id ?? row.original._id ?? ""

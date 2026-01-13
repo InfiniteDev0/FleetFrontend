@@ -141,7 +141,7 @@ const Dashboard = () => {
           <SectionCards />
 
           {/* Trucks table */}
-          <div className="px-5 hidden md:flex flex-col gap-4">
+          <div className="!px-4 hidden md:flex flex-col gap-4">
             <h2 className="text-xl">Trucks Data</h2>
             <TrucksDataTable
               data={filteredTrucks}

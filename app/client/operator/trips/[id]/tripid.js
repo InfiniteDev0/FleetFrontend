@@ -530,15 +530,15 @@ export default function TripPage() {
 
       if (tripExpenses && tripExpenses.length > 0) {
         const expenseRows = tripExpenses.map((expense) => [
-          `${Number(expense.Payment || 0).toLocaleString()} L`,
-          `$${Number(expense.rate || 0).toFixed(2)}/L`,
-          `$${Number(expense.amount || 0).toLocaleString()}`,
+          `${Number(expense.Payment || 0).toLocaleString()}`,
+          `${Number(expense.rate || 0).toFixed(2)}`,
+          `${Number(expense.amount || 0).toLocaleString()}$`,
           expense.reason || "No description",
         ]);
 
         autoTable(doc, {
           startY: finalY + 4,
-          head: [["Payment (L)", "Rate", "Amount", "Description"]],
+          head: [["Payment", "Rate", "Amount", "Description"]],
           body: expenseRows,
           theme: "grid",
           styles: { fontSize: 9, cellPadding: 3 },
