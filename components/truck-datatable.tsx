@@ -615,10 +615,14 @@ export function TrucksDataTable({
                       <div>
                         <div>
                           <Link
-                            href={`/client/${currentRole}/trucks/${encodeURIComponent(
-                              truck.plateNumber
+                            href={`/client/${
+                              currentRole === "super_admin"
+                                ? "super-admin"
+                                : currentRole
+                            }/trucks/${encodeURIComponent(
+                              row.original.plateNumber
                             )}?id=${encodeURIComponent(
-                              truck.id ?? truck._id ?? ""
+                              row.original.id ?? row.original._id ?? ""
                             )}`}
                             target="_self"
                             rel="noopener noreferrer"

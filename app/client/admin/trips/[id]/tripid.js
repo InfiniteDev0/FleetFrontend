@@ -648,20 +648,25 @@ export default function TripPage({ tripId }) {
     <div className="!py-6 !px-4 lg:!px-6 flex flex-col gap-5">
       <Card className="w-full">
         <CardContent className="flex items-center justify-between gap-4 p-4">
-          <div className="flex items-center gap-5">
+          <div className="flex flex-wrap items-center gap-3 sm:gap-5">
+            {/* Icon */}
             <img
               src="https://cdn-icons-png.flaticon.com/128/3987/3987997.png"
-              alt=""
-              className="w-15"
+              alt="Route icon"
+              className="w-10 h-10 sm:w-12 sm:h-12"
             />
-            {/* Left side: Route info in one line */}
-            <div className="flex items-center text-2xl font-bold tracking-wider">
-              <span>{trip.route?.origin || "-"}</span>
-              <span className="!mx-2 flex items-center">
+
+            {/* Route info */}
+            <div className="flex flex-wrap items-center text-lg sm:text-2xl font-bold tracking-wider">
+              <span className="truncate max-w-[120px] sm:max-w-none">
+                {trip.route?.origin || "-"}
+              </span>
+
+              {/* Arrow */}
+              <span className="mx-2 flex items-center">
                 <svg
-                  // ↓↓↓ Made the SVG smaller by reducing width/height ↓↓↓
-                  width="16" // was 6% → now fixed small px size
-                  height="12" // was 100% → now fixed small px size
+                  width="16"
+                  height="12"
                   viewBox="0 0 22 12"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -694,8 +699,12 @@ export default function TripPage({ tripId }) {
                 </svg>
               </span>
 
-              <span>{trip.route?.destination || "-"}</span>
-              <span className="!ml-4 text-sm text-muted-foreground">
+              <span className="truncate max-w-[120px] sm:max-w-none">
+                {trip.route?.destination || "-"}
+              </span>
+
+              {/* Truck info */}
+              <span className="block w-full sm:w-auto sm:ml-4 text-xs sm:text-sm text-muted-foreground mt-1 sm:mt-0">
                 {truck?.plateNumber || truck?.model
                   ? `(${truck?.plateNumber || ""}${
                       truck?.model ? ` — ${truck.model}` : ""
