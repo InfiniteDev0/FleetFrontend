@@ -664,7 +664,7 @@ export default function TripPage() {
             />
 
             {/* Route info */}
-            <div className="flex flex-wrap items-center text-lg sm:text-2xl font-bold tracking-wider">
+            <div className="flex flex-wrap items-center text-lg sm:text-2xl gap-3 font-bold tracking-wider">
               <span className="truncate max-w-[120px] sm:max-w-none">
                 {trip.route?.origin || "-"}
               </span>
@@ -800,7 +800,7 @@ export default function TripPage() {
                             {
                               hour: "2-digit",
                               minute: "2-digit",
-                            }
+                            },
                           )}`
                         : "-"}
                     </p>
@@ -816,7 +816,7 @@ export default function TripPage() {
                             {
                               hour: "2-digit",
                               minute: "2-digit",
-                            }
+                            },
                           )}`
                         : trip.arrivalTime || "-"}
                     </p>
