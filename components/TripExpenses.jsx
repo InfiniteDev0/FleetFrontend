@@ -50,6 +50,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useSuperAdmin } from "../app/context/SuperAdminContext";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogCancel,
+  AlertDialogAction,
+} from "@/components/ui/alert-dialog";
 
 const AddExpenseForm = dynamic(
   () => import("../app/client/super-admin/components/forms/AddExpenseForm"),
@@ -60,7 +71,7 @@ const AddExpenseForm = dynamic(
       </div>
     ),
     ssr: false,
-  }
+  },
 );
 
 // Drag handle component
@@ -103,6 +114,77 @@ function DraggableRow({ row }) {
         </TableCell>
       ))}
     </TableRow>
+  );
+}
+
+function DeleteExpenseAlert({
+  expenseId,
+  expenseReason,
+  fetchExpenses,
+  trigger,
+}) {
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState("");
+  const [open, setOpen] = React.useState(false);
+  const { deleteExpense } = useSuperAdmin();
+
+  const handleDelete = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      const result = await deleteExpense(expenseId);
+      if (!result.success) {
+        toast.error(result.message || "Failed to delete expense");
+        throw new Error(result.message || "Failed to delete expense");
+      }
+      await fetchExpenses();
+      toast.success("Expense deleted successfully");
+      setOpen(false);
+    } catch (e) {
+      setError(e.message || "Failed to delete expense");
+      toast.error(e.message || "Failed to delete expense");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <AlertDialog open={open} onOpenChange={setOpen}>
+      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Delete Expense</AlertDialogTitle>
+          <AlertDialogDescription>
+            <>
+              This will permanently delete this expense record.
+              <br />
+              <span className="text-red-900 text-xs mt-2 block">
+                Deleting <b>{expenseReason || "this expense"}</b> cannot be
+                undone.
+              </span>
+              {error && (
+                <span className="text-red-600 text-xs block mt-2">{error}</span>
+              )}
+            </>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={loading}>Cancel</AlertDialogCancel>
+          <AlertDialogAction asChild>
+            <button
+              className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded"
+              disabled={loading}
+              onClick={async (e) => {
+                e.preventDefault();
+                await handleDelete();
+              }}
+            >
+              {loading ? "Deleting..." : "Delete Expense"}
+            </button>
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 }
 
@@ -244,10 +326,21 @@ const TripExpenses = ({
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor),
-    useSensor(KeyboardSensor)
+    useSensor(KeyboardSensor),
   );
 
   const sortableId = React.useId();
+
+  // Helper to refresh expenses
+  const fetchExpenses = async () => {
+    const data = await fetchExpensesByTrip(tripId);
+    const normalizedData = (data || []).map((exp, idx) => ({
+      ...exp,
+      id: exp._id || exp.id || `expense-${idx}`,
+    }));
+    setExpenses(normalizedData);
+    setOrder(normalizedData.map((exp) => exp.id));
+  };
 
   // Expenses columns for DataTable
   const expensesColumns = [
@@ -262,7 +355,7 @@ const TripExpenses = ({
       header: () => <span className="font-semibold">Payment</span>,
       cell: ({ row }) => (
         <div className="font-semibold text-foreground">
-          {Number(row.getValue("Payment")).toLocaleString()} L
+          {Number(row.getValue("Payment")).toLocaleString()}
         </div>
       ),
       size: 150,
@@ -312,30 +405,20 @@ const TripExpenses = ({
       id: "actions",
       header: () => <div className="w-8"></div>,
       cell: ({ row }) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+        <DeleteExpenseAlert
+          expenseId={row.original.id}
+          expenseReason={row.original.reason}
+          fetchExpenses={fetchExpenses}
+          trigger={
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8 p-0 rounded-full hover:bg-accent"
+              className="h-8 w-8 p-0 rounded-full hover:bg-accent text-destructive"
             >
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal className="size-4" />
+              <Trash2 className="size-4" />
             </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem className="cursor-pointer">
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit Expense
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive cursor-pointer">
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete Expense
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          }
+        />
       ),
       size: 60,
     },
@@ -400,7 +483,7 @@ const TripExpenses = ({
                             ? null
                             : flexRender(
                                 header.column.columnDef.header,
-                                header.getContext()
+                                header.getContext(),
                               )}
                         </TableHead>
                       ))}

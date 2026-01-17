@@ -99,7 +99,7 @@ export const SuperAdminProvider = ({ children }) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       const result = await res.json();
       if (!res.ok) throw new Error(result?.message || "Failed to delete user");
@@ -318,7 +318,7 @@ export const SuperAdminProvider = ({ children }) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const result = await res.json();
@@ -381,7 +381,7 @@ export const SuperAdminProvider = ({ children }) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
 
       const result = await res.json();
@@ -418,7 +418,7 @@ export const SuperAdminProvider = ({ children }) => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(updatedData),
-        }
+        },
       );
 
       const result = await res.json();
@@ -492,7 +492,7 @@ export const SuperAdminProvider = ({ children }) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       const data = await res.json();
       if (!res.ok || !data.success)
@@ -599,7 +599,7 @@ export const SuperAdminProvider = ({ children }) => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(tripData),
-        }
+        },
       );
       const data = await res.json();
       if (!res.ok || !data.success)
@@ -629,7 +629,7 @@ export const SuperAdminProvider = ({ children }) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       const data = await res.json();
       if (!res.ok || !data.success)
@@ -659,7 +659,7 @@ export const SuperAdminProvider = ({ children }) => {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       const data = await res.json();
       if (!res.ok || !data.success)
@@ -689,7 +689,7 @@ export const SuperAdminProvider = ({ children }) => {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify(expenseData),
-        }
+        },
       );
       const data = await res.json();
       if (!res.ok || !data.success)
@@ -729,6 +729,37 @@ export const SuperAdminProvider = ({ children }) => {
     } catch (e) {
       setTripReportError(e.message || "Failed to fetch trip report");
       return null;
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete expense by ID
+  const deleteExpense = async (expenseId) => {
+    try {
+      setExpensesError(null);
+      setLoading(true);
+      const token = getToken();
+      if (!token) throw new Error("No auth token");
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/trips/expenses/${expenseId}`,
+        {
+          method: "DELETE",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        throw new Error(result.message || "Failed to delete expense");
+      }
+      // Optionally refresh expenses state if needed
+      return { success: true, message: result.message };
+    } catch (e) {
+      setExpensesError(e.message || "Failed to delete expense");
+      return { success: false, message: e.message };
     } finally {
       setLoading(false);
     }
@@ -773,6 +804,7 @@ export const SuperAdminProvider = ({ children }) => {
         expensesError,
         fetchExpensesByTrip,
         addExpenseToTrip,
+        deleteExpense,
 
         // Trip Report
         tripReport,
