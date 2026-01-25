@@ -171,17 +171,16 @@ function DeleteTruckDialog({ plateNumber, truckId, fetchTrucks, onSuccess }) {
 }
 
 function getColumns(fetchTrucks?: () => Promise<void>, currentRole?: string) {
-  const { currentRole: role } = useSuperAdmin();
+  // currentRole is now passed in, not read from hook
   return [
     {
-      id: "drag",
-      header: () => null,
-      cell: ({ row }) => <DragHandle id={row.original.id} />,
+      id: "no",
+      header: "No",
+      cell: ({ row }) => <span>{row.index + 1}</span>,
     },
-
     {
       accessorKey: "plateNumber",
-      header: "Truck Number",
+      header: "Number Plate",
       cell: ({ row }) => <span>{row.original.plateNumber}</span>,
       enableHiding: false,
     },
@@ -252,10 +251,10 @@ function getColumns(fetchTrucks?: () => Promise<void>, currentRole?: string) {
             {status === "in-use"
               ? "In Use"
               : status === "available"
-              ? "Available"
-              : status === "maintenance"
-              ? "Maintenance"
-              : status}
+                ? "Available"
+                : status === "maintenance"
+                  ? "Maintenance"
+                  : status}
           </Badge>
         );
       },
@@ -303,9 +302,9 @@ function getColumns(fetchTrucks?: () => Promise<void>, currentRole?: string) {
                 href={`/client/${
                   currentRole === "super_admin" ? "super-admin" : currentRole
                 }/trucks/${encodeURIComponent(
-                  row.original.plateNumber
+                  row.original.plateNumber,
                 )}?id=${encodeURIComponent(
-                  row.original.id ?? row.original._id ?? ""
+                  row.original.id ?? row.original._id ?? "",
                 )}`}
                 target="_self"
                 rel="noopener noreferrer"
@@ -410,14 +409,14 @@ export function TrucksDataTable({
         createdAt: t.createdAt || undefined,
         updatedAt: t.updatedAt || undefined,
       })),
-    [data]
+    [data],
   );
 
   const { currentRole } = useSuperAdmin();
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState({});
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    []
+    [],
   );
   const [sorting, setSorting] = React.useState<SortingState>([]);
   const [pagination, setPagination] = React.useState({
@@ -425,7 +424,7 @@ export function TrucksDataTable({
     pageSize: 10,
   });
   const [order, setOrder] = React.useState<(string | number)[]>(() =>
-    normalized.map((t) => t.id)
+    normalized.map((t) => t.id),
   );
   React.useEffect(() => {
     setOrder(normalized.map((t) => t.id));
@@ -433,12 +432,12 @@ export function TrucksDataTable({
   const sensors = useSensors(
     useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
     useSensor(TouchSensor),
-    useSensor(KeyboardSensor)
+    useSensor(KeyboardSensor),
   );
   const dataIds = order.map(String);
   const columns = React.useMemo(
     () => getColumns(fetchTrucks, currentRole),
-    [fetchTrucks, currentRole]
+    [fetchTrucks, currentRole],
   );
   const table = useReactTable({
     data: normalized,
@@ -500,7 +499,7 @@ export function TrucksDataTable({
                           ? null
                           : flexRender(
                               header.column.columnDef.header,
-                              header.getContext()
+                              header.getContext(),
                             )}
                       </TableHead>
                     ))}
@@ -596,10 +595,10 @@ export function TrucksDataTable({
                       {truck.status === "in-use"
                         ? "In Use"
                         : truck.status === "available"
-                        ? "Available"
-                        : truck.status === "maintenance"
-                        ? "Maintenance"
-                        : truck.status}
+                          ? "Available"
+                          : truck.status === "maintenance"
+                            ? "Maintenance"
+                            : truck.status}
                     </Badge>
                   </div>
                   <div className="flex items-end justify-between">
@@ -620,9 +619,9 @@ export function TrucksDataTable({
                                 ? "super-admin"
                                 : currentRole
                             }/trucks/${encodeURIComponent(
-                              row.original.plateNumber
+                              row.original.plateNumber,
                             )}?id=${encodeURIComponent(
-                              row.original.id ?? row.original._id ?? ""
+                              row.original.id ?? row.original._id ?? "",
                             )}`}
                             target="_self"
                             rel="noopener noreferrer"
